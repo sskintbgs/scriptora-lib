@@ -1075,7 +1075,7 @@ function Scriptora:CreateWindow(opts)
                 Size = UDim2.new(1, 0, 0, 22),
                 Parent = page,
             })
-            local label = create("TextLabel", {
+            local label = W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
                 Size = UDim2.new(0, 0, 1, 0),
                 AutomaticSize = Enum.AutomaticSize.X,
