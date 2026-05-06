@@ -1113,7 +1113,12 @@ function Scriptora:CreateWindow(opts)
             local btnTitle = opts.Title or opts.Name or "Button"
             local desc = opts.Description or ""
             local callback = opts.Callback or function() end
-
+            local frame = create("Frame", {
+                BackgroundColor3 = theme.Secondary,
+                Size = UDim2.new(1, 0, 0, desc ~= "" and 50 or 36),
+                BorderSizePixel = 0,
+                Parent = page,
+            })
             W:themed(frame, { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
             W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
@@ -1199,7 +1204,12 @@ function Scriptora:CreateWindow(opts)
             local callback = opts.Callback or function() end
 
             local toggle = { Value = default }
-
+            local frame = create("Frame", {
+                BackgroundColor3 = theme.Secondary,
+                Size = UDim2.new(1, 0, 0, desc ~= "" and 50 or 36),
+                BorderSizePixel = 0,
+                Parent = page,
+            })
             W:themed(frame, { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
             W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
@@ -1302,12 +1312,13 @@ function Scriptora:CreateWindow(opts)
 
             local slider = { Value = default }
 
-            local frame = W:themed(create("Frame", {
+            local frame = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
                 Size = UDim2.new(1, 0, 0, 56),
                 BorderSizePixel = 0,
                 Parent = page,
-            }), { BackgroundColor3 = "Secondary" })
+            })
+            W:themed(frame, { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
             W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
@@ -1435,13 +1446,14 @@ function Scriptora:CreateWindow(opts)
                 Open = false,
             }
 
-            local frame = W:themed(create("Frame", {
+            local frame = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
                 Size = UDim2.new(1, 0, 0, 50),
                 BorderSizePixel = 0,
                 ClipsDescendants = true,
                 Parent = page,
-            }), { BackgroundColor3 = "Secondary" })
+            })
+            W:themed(frame, { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
             W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
@@ -1670,12 +1682,13 @@ function Scriptora:CreateWindow(opts)
 
             local input = { Value = default }
 
-            local frame = W:themed(create("Frame", {
+            local frame = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
                 Size = UDim2.new(1, 0, 0, 50),
                 BorderSizePixel = 0,
                 Parent = page,
-            }), { BackgroundColor3 = "Secondary" })
+            })
+            W:themed(frame, { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
             W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
@@ -1747,12 +1760,13 @@ function Scriptora:CreateWindow(opts)
 
             local keybind = { Key = default, Listening = false, Toggled = false }
 
-            local frame = W:themed(create("Frame", {
+            local frame = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
                 Size = UDim2.new(1, 0, 0, 36),
                 BorderSizePixel = 0,
                 Parent = page,
-            }), { BackgroundColor3 = "Secondary" })
+            })
+            W:themed(frame, { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
             W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
@@ -1842,13 +1856,14 @@ function Scriptora:CreateWindow(opts)
 
             local picker = { Value = default, Open = false }
 
-            local frame = W:themed(create("Frame", {
+            local frame = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
                 Size = UDim2.new(1, 0, 0, 36),
                 BorderSizePixel = 0,
                 ClipsDescendants = true,
                 Parent = page,
-            }), { BackgroundColor3 = "Secondary" })
+            })
+            W:themed(frame, { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
             W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
