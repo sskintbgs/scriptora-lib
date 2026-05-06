@@ -659,14 +659,15 @@ function Scriptora:CreateWindow(opts)
 
     -- // Logo / icon
     local pfpUrl = fetchImage(opts.CustomPFP)
-    local logo = create(pfpUrl ~= "" and "ImageLabel" or "Frame", {
+    local logoClass = pfpUrl ~= "" and "ImageLabel" or "Frame"
+    local logo = create(logoClass, {
         BackgroundColor3 = theme.Accent,
         Position = UDim2.new(0, 12, 0.5, -12),
         Size = UDim2.new(0, 24, 0, 24),
         BorderSizePixel = 0,
         Parent = topBar,
     })
-    if pfpUrl ~= "" and logo:IsA("ImageLabel") then logo.Image = pfpUrl end
+    if pfpUrl ~= "" and logoClass == "ImageLabel" then logo.Image = pfpUrl end
     corner(logo, 6)
     W:themed(logo, { BackgroundColor3 = "Accent" })
 
@@ -1006,6 +1007,10 @@ function Scriptora:CreateWindow(opts)
             ImageColor3 = theme.SubText,
             Parent = tabBtn,
         })
+        W:themed(tabBtn, { 
+            BackgroundColor3 = function(t) return page.Visible and t.Tertiary or t.Secondary end,
+            TextColor3 = function(t) return page.Visible and t.Text or t.SubText end
+        })
         W:themed(tabIcon, { ImageColor3 = function(t) return page.Visible and t.Text or t.SubText end })
 
         -- left accent indicator
@@ -1039,12 +1044,12 @@ function Scriptora:CreateWindow(opts)
         local function selectTab()
             for _, t in ipairs(W.Tabs) do
                 t.Page.Visible = false
-                tween(t.Button, 0.2, { BackgroundTransparency = 1, TextColor3 = theme.SubText })
+                tween(t.Button, 0.2, { BackgroundTransparency = 1, TextColor3 = W.CurrentTheme.SubText })
                 local ab = t.Button:FindFirstChildOfClass("Frame")
                 if ab then tween(ab, 0.2, { Size = UDim2.new(0, 0, 0, 12) }) end
             end
             page.Visible = true
-            tween(tabBtn, 0.2, { BackgroundTransparency = 0, BackgroundColor3 = theme.Tertiary, TextColor3 = theme.Text })
+            tween(tabBtn, 0.2, { BackgroundTransparency = 0, BackgroundColor3 = W.CurrentTheme.Tertiary, TextColor3 = W.CurrentTheme.Text })
             tween(accentBar, 0.25, { Size = UDim2.new(0, 3, 0, 16) }, Enum.EasingStyle.Back)
 
             -- fade in elements
@@ -1055,12 +1060,12 @@ function Scriptora:CreateWindow(opts)
         tabBtn.MouseButton1Click:Connect(selectTab)
         tabBtn.MouseEnter:Connect(function()
             if not page.Visible then
-                tween(tabBtn, 0.15, { TextColor3 = theme.Text, BackgroundTransparency = 0.7 })
+                tween(tabBtn, 0.15, { TextColor3 = W.CurrentTheme.Text, BackgroundTransparency = 0.7 })
             end
         end)
         tabBtn.MouseLeave:Connect(function()
             if not page.Visible then
-                tween(tabBtn, 0.15, { TextColor3 = theme.SubText, BackgroundTransparency = 1 })
+                tween(tabBtn, 0.15, { TextColor3 = W.CurrentTheme.SubText, BackgroundTransparency = 1 })
             end
         end)
 
