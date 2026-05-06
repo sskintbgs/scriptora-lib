@@ -1570,9 +1570,9 @@ function Scriptora:CreateWindow(opts)
                         sel = (dropdown.Value == opt)
                     end
                     if sel then
-                        tween(b, 0.15, { BackgroundTransparency = 0, BackgroundColor3 = theme.Accent, TextColor3 = theme.Text })
+                        tween(b, 0.15, { BackgroundTransparency = 0, BackgroundColor3 = W.CurrentTheme.Accent, TextColor3 = W.CurrentTheme.Text })
                     else
-                        tween(b, 0.15, { BackgroundTransparency = 1, TextColor3 = theme.SubText })
+                        tween(b, 0.15, { BackgroundTransparency = 1, TextColor3 = W.CurrentTheme.SubText })
                     end
                 end
             end
@@ -1598,6 +1598,28 @@ function Scriptora:CreateWindow(opts)
                     corner(optBtn, 4)
                     optionButtons[opt] = optBtn
 
+                    -- Link to theme engine with state-aware logic
+                    W:themed(optBtn, {
+                        BackgroundColor3 = function(t) 
+                            local sel = false
+                            if multi then for _, v in ipairs(dropdown.Value) do if v == opt then sel = true break end end
+                            else sel = (dropdown.Value == opt) end
+                            return sel and t.Accent or t.Element
+                        end,
+                        TextColor3 = function(t)
+                            local sel = false
+                            if multi then for _, v in ipairs(dropdown.Value) do if v == opt then sel = true break end end
+                            else sel = (dropdown.Value == opt) end
+                            return sel and t.Text or t.SubText
+                        end,
+                        BackgroundTransparency = function()
+                            local sel = false
+                            if multi then for _, v in ipairs(dropdown.Value) do if v == opt then sel = true break end end
+                            else sel = (dropdown.Value == opt) end
+                            return sel and 0 or 1
+                        end
+                    })
+
                     optBtn.MouseEnter:Connect(function()
                         local isSel = false
                         if multi then
@@ -1606,7 +1628,7 @@ function Scriptora:CreateWindow(opts)
                             end
                         else isSel = (dropdown.Value == opt) end
                         if not isSel then
-                            tween(optBtn, 0.12, { BackgroundTransparency = 0.4, BackgroundColor3 = theme.Element, TextColor3 = theme.Text })
+                            tween(optBtn, 0.12, { BackgroundTransparency = 0.4, BackgroundColor3 = W.CurrentTheme.Element, TextColor3 = W.CurrentTheme.Text })
                         end
                     end)
                     optBtn.MouseLeave:Connect(refreshButtonStates)
