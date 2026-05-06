@@ -1,5 +1,5 @@
 --[[
-    Scriptora Universal Hub (v9.0)
+    Scriptora Universal Hub
     "The Infinite Universal" — 100+ Features
 ]]
 
@@ -169,8 +169,8 @@ end
 
 -- // UI Creation
 local Hub = Scriptora:CreateWindow({
-    Name      = "Scriptora Universal v9.0",
-    SubTitle  = "The Infinite Universal",
+    Name      = "Scriptora Universal",
+    SubTitle  = "The best utility",
     Theme     = "Amethyst",
     Size      = UDim2.new(0, 660, 0, 500),
     ToggleKey = Enum.KeyCode.RightShift,
@@ -501,4 +501,4 @@ CONNECTIONS.Heartbeat = RunService.Heartbeat:Connect(function()
 end)
 
 CONNECTIONS.Jump = UserInputService.JumpRequest:Connect(function() if Config.Misc.InfiniteJump and LocalPlayer.Character then LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end end)
-Scriptora:Notify({ Title = "Scriptora Universal v9.0", Content = "Infinite Universal Hub Loaded.", Type = "success" })
+Scriptora:Notify({ Title = "Scriptora Universal", Content = "Infinite Universal Hub Loaded.", Type = "success" })
