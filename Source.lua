@@ -119,21 +119,21 @@ Scriptora.Themes = {
     },
     Light = {
         Background    = Color3.fromRGB(245, 245, 248),
-        Secondary     = Color3.fromRGB(235, 235, 240),
-        Tertiary      = Color3.fromRGB(225, 225, 232),
-        Element       = Color3.fromRGB(215, 215, 222),
-        ElementHover  = Color3.fromRGB(205, 205, 213),
-        Border        = Color3.fromRGB(195, 195, 205),
-        Accent        = Color3.fromRGB(120, 80, 220),
-        AccentHover   = Color3.fromRGB(140, 100, 240),
-        AccentDim     = Color3.fromRGB(90, 60, 180),
-        Text          = Color3.fromRGB(25, 25, 30),
-        SubText       = Color3.fromRGB(95, 95, 110),
-        Disabled      = Color3.fromRGB(170, 170, 180),
-        Success       = Color3.fromRGB(60, 180, 100),
-        Warning       = Color3.fromRGB(220, 150, 50),
-        Error         = Color3.fromRGB(220, 70, 90),
-        Info          = Color3.fromRGB(70, 140, 230),
+        Secondary     = Color3.fromRGB(230, 230, 235),
+        Tertiary      = Color3.fromRGB(215, 215, 220),
+        Element       = Color3.fromRGB(200, 200, 210),
+        ElementHover  = Color3.fromRGB(180, 180, 195),
+        Border        = Color3.fromRGB(170, 170, 185),
+        Accent        = Color3.fromRGB(100, 70, 200),
+        AccentHover   = Color3.fromRGB(120, 90, 220),
+        AccentDim     = Color3.fromRGB(80, 50, 160),
+        Text          = Color3.fromRGB(20, 20, 30),
+        SubText       = Color3.fromRGB(80, 80, 100),
+        Disabled      = Color3.fromRGB(150, 150, 160),
+        Success       = Color3.fromRGB(40, 150, 80),
+        Warning       = Color3.fromRGB(200, 130, 40),
+        Error         = Color3.fromRGB(200, 50, 70),
+        Info          = Color3.fromRGB(50, 120, 200),
     },
     Midnight = {
         Background    = Color3.fromRGB(13, 17, 23),
@@ -172,18 +172,18 @@ Scriptora.Themes = {
         Info          = Color3.fromRGB(100, 180, 255),
     },
     Forest = {
-        Background    = Color3.fromRGB(18, 26, 22),
-        Secondary     = Color3.fromRGB(24, 34, 28),
-        Tertiary      = Color3.fromRGB(32, 44, 36),
-        Element       = Color3.fromRGB(40, 54, 44),
-        ElementHover  = Color3.fromRGB(50, 64, 54),
-        Border        = Color3.fromRGB(48, 62, 52),
-        Accent        = Color3.fromRGB(110, 220, 140),
-        AccentHover   = Color3.fromRGB(130, 240, 160),
-        AccentDim     = Color3.fromRGB(70, 170, 100),
-        Text          = Color3.fromRGB(230, 240, 232),
-        SubText       = Color3.fromRGB(150, 175, 158),
-        Disabled      = Color3.fromRGB(90, 105, 95),
+        Background    = Color3.fromRGB(12, 18, 14),
+        Secondary     = Color3.fromRGB(18, 28, 22),
+        Tertiary      = Color3.fromRGB(24, 38, 30),
+        Element       = Color3.fromRGB(34, 52, 42),
+        ElementHover  = Color3.fromRGB(44, 66, 54),
+        Border        = Color3.fromRGB(54, 80, 64),
+        Accent        = Color3.fromRGB(80, 220, 120),
+        AccentHover   = Color3.fromRGB(100, 255, 150),
+        AccentDim     = Color3.fromRGB(50, 160, 90),
+        Text          = Color3.fromRGB(220, 245, 230),
+        SubText       = Color3.fromRGB(140, 180, 160),
+        Disabled      = Color3.fromRGB(70, 90, 80),
         Success       = Color3.fromRGB(100, 220, 140),
         Warning       = Color3.fromRGB(255, 180, 80),
         Error         = Color3.fromRGB(255, 90, 110),
@@ -208,18 +208,18 @@ Scriptora.Themes = {
         Info          = Color3.fromRGB(100, 180, 255),
     },
     Sunset = {
-        Background    = Color3.fromRGB(26, 16, 22),
-        Secondary     = Color3.fromRGB(36, 22, 30),
-        Tertiary      = Color3.fromRGB(48, 30, 38),
-        Element       = Color3.fromRGB(60, 38, 48),
-        ElementHover  = Color3.fromRGB(76, 48, 60),
-        Border        = Color3.fromRGB(80, 50, 60),
-        Accent        = Color3.fromRGB(255, 140, 80),
-        AccentHover   = Color3.fromRGB(255, 165, 110),
-        AccentDim     = Color3.fromRGB(220, 100, 60),
-        Text          = Color3.fromRGB(248, 235, 230),
-        SubText       = Color3.fromRGB(190, 160, 160),
-        Disabled      = Color3.fromRGB(110, 90, 90),
+        Background    = Color3.fromRGB(20, 12, 16),
+        Secondary     = Color3.fromRGB(32, 18, 24),
+        Tertiary      = Color3.fromRGB(45, 25, 32),
+        Element       = Color3.fromRGB(60, 35, 45),
+        ElementHover  = Color3.fromRGB(75, 45, 55),
+        Border        = Color3.fromRGB(90, 50, 60),
+        Accent        = Color3.fromRGB(255, 120, 60),
+        AccentHover   = Color3.fromRGB(255, 150, 80),
+        AccentDim     = Color3.fromRGB(180, 80, 40),
+        Text          = Color3.fromRGB(255, 240, 230),
+        SubText       = Color3.fromRGB(200, 160, 160),
+        Disabled      = Color3.fromRGB(100, 80, 85),
         Success       = Color3.fromRGB(100, 220, 140),
         Warning       = Color3.fromRGB(255, 180, 80),
         Error         = Color3.fromRGB(255, 90, 110),
@@ -628,9 +628,8 @@ function Scriptora:CreateWindow(opts)
         Parent = gui,
     })
     corner(main, 10)
-    stroke(main, theme.Border, 1)
-    shadow(main, 0.4)
     W:themed(main, { BackgroundColor3 = "Background" })
+    W:themed(stroke(main, theme.Border, 1), { Color = "Border" })
     W.Main = main
 
     -- ------------------ TOP BAR ------------------
@@ -757,9 +756,8 @@ function Scriptora:CreateWindow(opts)
         BorderSizePixel = 0,
         Parent = sidebar,
     })
-    corner(searchHolder, 6)
-    stroke(searchHolder, theme.Border, 1, 0.5)
     W:themed(searchHolder, { BackgroundColor3 = "Tertiary" })
+    W:themed(stroke(searchHolder, theme.Border, 1, 0.5), { Color = "Border" })
 
     local searchIcon = create("TextLabel", {
         BackgroundTransparency = 1,
@@ -1116,14 +1114,9 @@ function Scriptora:CreateWindow(opts)
             local desc = opts.Description or ""
             local callback = opts.Callback or function() end
 
-            local frame = create("Frame", {
-                BackgroundColor3 = theme.Secondary,
-                Size = UDim2.new(1, 0, 0, desc ~= "" and 50 or 36),
-                BorderSizePixel = 0,
-                Parent = page,
-            })
+            W:themed(frame, { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
-            stroke(frame, theme.Border, 1)
+            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
             local btn = create("TextButton", {
                 BackgroundTransparency = 1,
@@ -1207,14 +1200,9 @@ function Scriptora:CreateWindow(opts)
 
             local toggle = { Value = default }
 
-            local frame = W:themed(create("Frame", {
-                BackgroundColor3 = theme.Secondary,
-                Size = UDim2.new(1, 0, 0, desc ~= "" and 50 or 36),
-                BorderSizePixel = 0,
-                Parent = page,
-            }), { BackgroundColor3 = "Secondary" })
+            W:themed(frame, { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
-            stroke(frame, theme.Border, 1)
+            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
             local btn = create("TextButton", {
                 BackgroundTransparency = 1,
@@ -1321,7 +1309,7 @@ function Scriptora:CreateWindow(opts)
                 Parent = page,
             }), { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
-            stroke(frame, theme.Border, 1)
+            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
             local titleLbl = W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
@@ -1455,7 +1443,7 @@ function Scriptora:CreateWindow(opts)
                 Parent = page,
             }), { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
-            stroke(frame, theme.Border, 1)
+            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
             create("TextLabel", {
                 BackgroundTransparency = 1,
@@ -1503,7 +1491,7 @@ function Scriptora:CreateWindow(opts)
                 Parent = frame,
             })
             corner(optionsHolder, 4)
-            stroke(optionsHolder, theme.Border, 1, 0.5)
+            W:themed(stroke(optionsHolder, theme.Border, 1, 0.5), { Color = "Border" })
 
             local optionsList = create("ScrollingFrame", {
                 BackgroundTransparency = 1,
@@ -1689,7 +1677,7 @@ function Scriptora:CreateWindow(opts)
                 Parent = page,
             }), { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
-            stroke(frame, theme.Border, 1)
+            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
             create("TextLabel", {
                 BackgroundTransparency = 1,
@@ -1759,14 +1747,14 @@ function Scriptora:CreateWindow(opts)
 
             local keybind = { Key = default, Listening = false, Toggled = false }
 
-            local frame = create("Frame", {
+            local frame = W:themed(create("Frame", {
                 BackgroundColor3 = theme.Secondary,
                 Size = UDim2.new(1, 0, 0, 36),
                 BorderSizePixel = 0,
                 Parent = page,
-            })
+            }), { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
-            stroke(frame, theme.Border, 1)
+            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
             create("TextLabel", {
                 BackgroundTransparency = 1,
@@ -1862,7 +1850,7 @@ function Scriptora:CreateWindow(opts)
                 Parent = page,
             }), { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
-            stroke(frame, theme.Border, 1)
+            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
             create("TextLabel", {
                 BackgroundTransparency = 1,
@@ -2020,15 +2008,15 @@ function Scriptora:CreateWindow(opts)
             local title = opts.Title or "Paragraph"
             local content = opts.Content or ""
 
-            local frame = create("Frame", {
+            local frame = W:themed(create("Frame", {
                 BackgroundColor3 = theme.Secondary,
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BorderSizePixel = 0,
                 Parent = page,
-            })
+            }), { BackgroundColor3 = "Secondary" })
             corner(frame, 6)
-            stroke(frame, theme.Border, 1)
+            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
 
             local pad = create("Frame", {
                 BackgroundTransparency = 1,

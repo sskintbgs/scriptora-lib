@@ -8,7 +8,7 @@
 local Scriptora = _G.Scriptora or shared.Scriptora or getgenv().Scriptora 
 if not Scriptora then
     -- Fallback for local testing or if not pre-loaded
-    Scriptora = loadstring(game:HttpGet("https://raw.githubusercontent.com/User/Repo/main/Source.lua"))()
+    Scriptora = loadstring(game:HttpGet("https://raw.githubusercontent.com/sskintbgs/scriptora-lib/refs/heads/main/Source.lua"))()
 end
 
 -- // Create the main window
@@ -20,9 +20,8 @@ local Window = Scriptora:CreateWindow({
     ToggleKey = Enum.KeyCode.RightShift,
     ConfigFolder = "ScriptoraConfigs",
     ConfigName   = "Default",
-    -- You can use a custom pfp here! 
-    -- Now supports direct GitHub URLs!
-    CustomPFP = "https://raw.githubusercontent.com/User/Repo/main/pfp.png",
+    -- Support for GitHub PFP!
+    CustomPFP = "https://raw.githubusercontent.com/sskintbgs/scriptora-lib/main/Untitled.jpg",
 })
 
 -- // Initial Notification
