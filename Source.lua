@@ -663,10 +663,10 @@ function Scriptora:CreateWindow(opts)
         BackgroundColor3 = theme.Accent,
         Position = UDim2.new(0, 12, 0.5, -12),
         Size = UDim2.new(0, 24, 0, 24),
-        Image = pfpUrl ~= "" and pfpUrl or "",
         BorderSizePixel = 0,
         Parent = topBar,
     })
+    if pfpUrl ~= "" and logo:IsA("ImageLabel") then logo.Image = pfpUrl end
     corner(logo, 6)
     W:themed(logo, { BackgroundColor3 = "Accent" })
 
