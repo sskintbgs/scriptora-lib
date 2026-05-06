@@ -1971,32 +1971,100 @@ function Scriptora:CreateWindow(opts)
             })
             hueGrad.Rotation = 90
 
-            local rgbLabel = create("TextLabel", {
+            local inputHolder = create("Frame", {
                 BackgroundTransparency = 1,
                 Position = UDim2.new(0, 120, 0, 6),
                 Size = UDim2.new(1, -126, 0, 88),
-                Font = Enum.Font.GothamBold,
-                TextSize = 11,
-                TextColor3 = theme.Text,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                TextYAlignment = Enum.TextYAlignment.Top,
-                Text = "",
                 Parent = pickerFrame,
             })
+            listLayout(inputHolder, 4)
+
+            local function createInput(label, default)
+                local container = create("Frame", {
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 18),
+                    Parent = inputHolder,
+                })
+                create("TextLabel", {
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(0, 30, 1, 0),
+                    Font = Enum.Font.GothamBold,
+                    TextSize = 10,
+                    TextColor3 = theme.SubText,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Text = label,
+                    Parent = container,
+                })
+                local box = create("TextBox", {
+                    BackgroundColor3 = theme.Element,
+                    Position = UDim2.new(0, 30, 0, 0),
+                    Size = UDim2.new(1, -30, 1, 0),
+                    Font = Enum.Font.Gotham,
+                    TextSize = 10,
+                    TextColor3 = theme.Text,
+                    Text = tostring(default),
+                    ClearTextOnFocus = false,
+                    Parent = container,
+                })
+                corner(box, 3)
+                W:themed(box, { BackgroundColor3 = "Element", TextColor3 = "Text" })
+                return box
+            end
+
+            local rInput = createInput("R", "255")
+            local gInput = createInput("G", "255")
+            local bInput = createInput("B", "255")
+            local hexInput = createInput("HEX", "#FFFFFF")
 
             local h, s, v = Color3.toHSV(default)
+            local updating = false
 
-            local function updateColor()
+            local function updateColor(fromInputs)
+                if updating then return end
+                updating = true
                 local color = Color3.fromHSV(h, s, v)
                 picker.Value = color
                 swatch.BackgroundColor3 = color
                 satVal.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
-                rgbLabel.Text = string.format("R %d\nG %d\nB %d\nHEX #%02X%02X%02X",
-                    color.R*255, color.G*255, color.B*255,
-                    color.R*255, color.G*255, color.B*255)
+                
+                if not fromInputs then
+                    rInput.Text = math.floor(color.R * 255)
+                    gInput.Text = math.floor(color.G * 255)
+                    bInput.Text = math.floor(color.B * 255)
+                    hexInput.Text = "#" .. color:ToHex():upper()
+                end
+
                 if flag then Scriptora.Flags[flag] = color end
                 task.spawn(callback, color)
+                updating = false
             end
+
+            local function onInputChange()
+                local r, g, b = tonumber(rInput.Text) or 0, tonumber(gInput.Text) or 0, tonumber(bInput.Text) or 0
+                local newColor = Color3.fromRGB(math.clamp(r, 0, 255), math.clamp(g, 0, 255), math.clamp(b, 0, 255))
+                h, s, v = Color3.toHSV(newColor)
+                updateColor(true)
+                hexInput.Text = "#" .. newColor:ToHex():upper()
+            end
+
+            local function onHexChange()
+                local hex = hexInput.Text:gsub("#", "")
+                if #hex == 6 then
+                    local success, newColor = pcall(Color3.fromHex, hex)
+                    if success then
+                        h, s, v = Color3.toHSV(newColor)
+                        updateColor(true)
+                        rInput.Text = math.floor(newColor.R * 255)
+                        gInput.Text = math.floor(newColor.G * 255)
+                        bInput.Text = math.floor(newColor.B * 255)
+                    end
+                end
+            end
+
+            rInput.FocusLost:Connect(onInputChange)
+            gInput.FocusLost:Connect(onInputChange)
+            bInput.FocusLost:Connect(onInputChange)
+            hexInput.FocusLost:Connect(onHexChange)
 
             local svDrag, hueDrag = false, false
             satVal.InputBegan:Connect(function(i)
@@ -2021,14 +2089,31 @@ function Scriptora:CreateWindow(opts)
                 end
             end)
 
-            swatch.MouseButton1Click:Connect(function()
-                picker.Open = not picker.Open
+            local closeBtn = create("TextButton", {
+                BackgroundColor3 = theme.Element,
+                Position = UDim2.new(1, -50, 0, 6),
+                Size = UDim2.new(0, 44, 0, 18),
+                Font = Enum.Font.GothamBold,
+                TextSize = 10,
+                TextColor3 = theme.Text,
+                Text = "Close",
+                AutoButtonColor = false,
+                Parent = pickerFrame,
+            })
+            corner(closeBtn, 4)
+            W:themed(closeBtn, { BackgroundColor3 = "Element", TextColor3 = "Text" })
+
+            local function togglePicker(state)
+                picker.Open = state
                 if picker.Open then
                     tween(frame, 0.25, { Size = UDim2.new(1, 0, 0, 148) })
                 else
                     tween(frame, 0.25, { Size = UDim2.new(1, 0, 0, 36) })
                 end
-            end)
+            end
+
+            swatch.MouseButton1Click:Connect(function() togglePicker(not picker.Open) end)
+            closeBtn.MouseButton1Click:Connect(function() togglePicker(false) end)
 
             function picker:Set(c, silent)
                 picker.Value = c
