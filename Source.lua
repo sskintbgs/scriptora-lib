@@ -987,16 +987,26 @@ function Scriptora:CreateWindow(opts)
         local tabBtn = create("TextButton", {
             BackgroundColor3 = theme.Tertiary,
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 30),
+            Size = UDim2.new(1, 0, 0, 32),
             Font = Enum.Font.Gotham,
             TextSize = 12,
             TextColor3 = theme.SubText,
             TextXAlignment = Enum.TextXAlignment.Left,
-            Text = "  " .. tab.Icon .. "   " .. tab.Name,
+            Text = "          " .. tab.Name, -- Pad text for icon
             AutoButtonColor = false,
             Parent = tabHolder,
         })
         corner(tabBtn, 6)
+
+        local tabIcon = create("ImageLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0.5, -8),
+            Size = UDim2.new(0, 16, 0, 16),
+            Image = tab.Icon,
+            ImageColor3 = theme.SubText,
+            Parent = tabBtn,
+        })
+        W:themed(tabIcon, { ImageColor3 = function(t) return page.Visible and t.Text or t.SubText end })
 
         -- left accent indicator
         local accentBar = create("Frame", {
