@@ -658,23 +658,29 @@ function Scriptora:CreateWindow(opts)
     }), { BackgroundColor3 = "Secondary" })
 
     -- // Logo / icon
-    local logo = create("Frame", {
+    local pfpUrl = fetchImage(opts.CustomPFP)
+    local logo = create(pfpUrl ~= "" and "ImageLabel" or "Frame", {
         BackgroundColor3 = theme.Accent,
-        Position = UDim2.new(0, 12, 0.5, -10),
-        Size = UDim2.new(0, 20, 0, 20),
+        Position = UDim2.new(0, 12, 0.5, -12),
+        Size = UDim2.new(0, 24, 0, 24),
+        Image = pfpUrl ~= "" and pfpUrl or "",
+        BorderSizePixel = 0,
         Parent = topBar,
     })
     corner(logo, 6)
-    create("TextLabel", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Font = Enum.Font.GothamBold,
-        TextSize = 13,
-        TextColor3 = theme.Text,
-        Text = string.sub(windowName, 1, 1):upper(),
-        Parent = logo,
-    })
     W:themed(logo, { BackgroundColor3 = "Accent" })
+
+    if pfpUrl == "" then
+        create("TextLabel", {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Font = Enum.Font.GothamBold,
+            TextSize = 14,
+            TextColor3 = theme.Text,
+            Text = string.sub(windowName, 1, 1):upper(),
+            Parent = logo,
+        })
+    end
 
     local titleLabel = create("TextLabel", {
         BackgroundTransparency = 1,
@@ -813,7 +819,7 @@ function Scriptora:CreateWindow(opts)
         BackgroundColor3 = theme.Element,
         Position = UDim2.new(0, 8, 0.5, -13),
         Size = UDim2.new(0, 26, 0, 26),
-        Image = fetchImage(opts.CustomPFP) or ("https://www.roblox.com/headshot-thumbnail/image?userId=" .. LP.UserId .. "&width=150&height=150&format=png"),
+        Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LP.UserId .. "&width=150&height=150&format=png",
         Parent = playerBar,
     })
     corner(avatar, 13)
