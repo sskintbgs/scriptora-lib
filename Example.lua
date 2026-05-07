@@ -53,9 +53,31 @@ local Config = {
     }
 }
 local ORIGINAL_SIZES = {}
+local CAPABILITIES = {
+    Triangle = false,
+    Square = false,
+    Circle = false,
+    Line = false,
+    Text = false
+}
 
+local function checkCapabilities()
+    local types = {"Triangle", "Square", "Circle", "Line", "Text"}
+    for _, t in ipairs(types) do
+        local ok, obj = pcall(function() return Drawing.new(t) end)
+        if ok and (typeof(obj) == "userdata" or typeof(obj) == "table") then
+            CAPABILITIES[t] = true
+            obj:Remove()
+        end
+    end
+end
+checkCapabilities()
+
+if not CAPABILITIES.Triangle then
+    Config.Visuals.Compass = false
+end
 -- // Data Storage
-local FOVCircle = Drawing.new("Circle")
+local FOVCircle = CAPABILITIES.Circle and Drawing.new("Circle") or nil
 local ESP_REGISTRY = {}
 local CONNECTIONS = {}
 local ALL_BONES = {
@@ -72,39 +94,37 @@ local function createEntity(ent)
     if ESP_REGISTRY[ent] then return end
     
     local d = {
-        Box = Drawing.new("Square"),
-        BoxFill = Drawing.new("Square"),
+        Box = CAPABILITIES.Square and Drawing.new("Square") or nil,
+        BoxFill = CAPABILITIES.Square and Drawing.new("Square") or nil,
         Corners = {
-            Drawing.new("Line"), Drawing.new("Line"), Drawing.new("Line"), Drawing.new("Line"),
-            Drawing.new("Line"), Drawing.new("Line"), Drawing.new("Line"), Drawing.new("Line")
+            CAPABILITIES.Line and Drawing.new("Line") or nil, CAPABILITIES.Line and Drawing.new("Line") or nil, CAPABILITIES.Line and Drawing.new("Line") or nil, CAPABILITIES.Line and Drawing.new("Line") or nil,
+            CAPABILITIES.Line and Drawing.new("Line") or nil, CAPABILITIES.Line and Drawing.new("Line") or nil, CAPABILITIES.Line and Drawing.new("Line") or nil, CAPABILITIES.Line and Drawing.new("Line") or nil
         },
         Skeleton = {},
-        Name = Drawing.new("Text"),
-        HealthT = Drawing.new("Text"),
-        Tracer = Drawing.new("Line"),
-        HealthBar = Drawing.new("Line"),
-        HealthBack = Drawing.new("Line"),
-        HeadC = Drawing.new("Circle"),
-        LookL = Drawing.new("Line"),
-        Arrow = pcall(function() return Drawing.new("Triangle") end) and Drawing.new("Triangle") or nil,
+        Name = CAPABILITIES.Text and Drawing.new("Text") or nil,
+        HealthT = CAPABILITIES.Text and Drawing.new("Text") or nil,
+        Tracer = CAPABILITIES.Line and Drawing.new("Line") or nil,
+        HealthBar = CAPABILITIES.Line and Drawing.new("Line") or nil,
+        HealthBack = CAPABILITIES.Line and Drawing.new("Line") or nil,
+        HeadC = CAPABILITIES.Circle and Drawing.new("Circle") or nil,
+        LookL = CAPABILITIES.Line and Drawing.new("Line") or nil,
+        Arrow = CAPABILITIES.Triangle and Drawing.new("Triangle") or nil,
     }
     
     -- Setup Defaults
-    d.Box.Thickness = 1; d.Box.Outline = true
-    d.BoxFill.Thickness = 0; d.BoxFill.Filled = true; d.BoxFill.Transparency = 0.4
-    for _, l in ipairs(d.Corners) do l.Thickness = 1.5; l.Outline = true end
-    for i=1, 15 do table.insert(d.Skeleton, Drawing.new("Line")) end
-    for _, l in ipairs(d.Skeleton) do l.Thickness = 1.5; l.Outline = true end
-    d.Name.Center = true; d.Name.Outline = true
-    d.HealthT.Outline = true
-    d.Tracer.Thickness = 1; d.Tracer.Outline = true
-    d.HealthBar.Thickness = 2; d.HealthBar.Outline = true
-    d.HealthBack.Thickness = 3; d.HealthBack.Color = Color3.new(0,0,0); d.HealthBack.Transparency = 0.5
-    d.HeadC.Thickness = 1; d.HeadC.Outline = true
-    d.LookL.Thickness = 1; d.LookL.Outline = true
-    if d.Arrow then
-        d.Arrow.Filled = true; d.Arrow.Thickness = 0
-    end
+    if d.Box then d.Box.Thickness = 1; d.Box.Outline = true end
+    if d.BoxFill then d.BoxFill.Thickness = 0; d.BoxFill.Filled = true; d.BoxFill.Transparency = 0.4 end
+    for _, l in ipairs(d.Corners) do if typeof(l) ~= "number" then l.Thickness = 1.5; l.Outline = true end end
+    for i=1, 15 do table.insert(d.Skeleton, CAPABILITIES.Line and Drawing.new("Line") or nil) end
+    for _, l in ipairs(d.Skeleton) do if typeof(l) ~= "number" then l.Thickness = 1.5; l.Outline = true end end
+    if d.Name then d.Name.Center = true; d.Name.Outline = true end
+    if d.HealthT then d.HealthT.Outline = true end
+    if d.Tracer then d.Tracer.Thickness = 1; d.Tracer.Outline = true end
+    if d.HealthBar then d.HealthBar.Thickness = 2; d.HealthBar.Outline = true end
+    if d.HealthBack then d.HealthBack.Thickness = 3; d.HealthBack.Color = Color3.new(0,0,0); d.HealthBack.Transparency = 0.5 end
+    if d.HeadC then d.HeadC.Thickness = 1; d.HeadC.Outline = true end
+    if d.LookL then d.LookL.Thickness = 1; d.LookL.Outline = true end
+    if d.Arrow then d.Arrow.Filled = true; d.Arrow.Thickness = 0 end
     
     ESP_REGISTRY[ent] = d
 end
@@ -242,7 +262,17 @@ Scriptora:CreateKeySystem({
         VisualsTab:AddToggle({ Title = "Chams", Callback = function(v) Config.Visuals.Chams = v end })
         VisualsTab:AddToggle({ Title = "Head Circles", Callback = function(v) Config.Visuals.HeadCircles = v end })
         VisualsTab:AddToggle({ Title = "Look Lines", Callback = function(v) Config.Visuals.LookLines = v end })
-        VisualsTab:AddToggle({ Title = "Compass", Callback = function(v) Config.Visuals.Compass = v end })
+        VisualsTab:AddToggle({ 
+            Title = "Compass", 
+            Default = false,
+            Callback = function(v) 
+                if not CAPABILITIES.Triangle then 
+                    Scriptora:Notify({ Title = "Unsupported", Content = "Your executor does not support Triangle drawing for Compass.", Type = "warning" })
+                    return 
+                end
+                Config.Visuals.Compass = v 
+            end 
+        })
 
         VisualsTab:AddSection("Information")
         VisualsTab:AddToggle({ Title = "Names", Default = true, Callback = function(v) Config.Visuals.Names = v end })
@@ -410,8 +440,10 @@ Scriptora:CreateKeySystem({
 
         -- // MAIN
         CONNECTIONS.Heartbeat = RunService.Heartbeat:Connect(function()
-            FOVCircle.Visible = Config.Combat.ShowFOV and Config.Combat.Aimbot
-            FOVCircle.Radius = Config.Combat.FOV; FOVCircle.Position = UserInputService:GetMouseLocation(); FOVCircle.Color = Config.Colors.FOVColor
+            if FOVCircle then
+                FOVCircle.Visible = Config.Combat.ShowFOV and Config.Combat.Aimbot
+                FOVCircle.Radius = Config.Combat.FOV; FOVCircle.Position = UserInputService:GetMouseLocation(); FOVCircle.Color = Config.Colors.FOVColor
+            end
 
             local char = LocalPlayer.Character
             if char and char:FindFirstChild("Humanoid") then
@@ -518,6 +550,10 @@ Scriptora:CreateKeySystem({
         end)
 
         CONNECTIONS.Jump = UserInputService.JumpRequest:Connect(function() if Config.Misc.InfiniteJump and LocalPlayer.Character then LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end end)
+        
+        if not CAPABILITIES.Triangle then
+            Scriptora:Notify({ Title = "Executor Warning", Content = "Some visual features (Compass) are disabled due to executor limitations.", Type = "warning", Duration = 8 })
+        end
         Scriptora:Notify({ Title = "Scriptora Universal v9.0", Content = "Infinite Universal Hub Loaded.", Type = "success" })
     end
 })
