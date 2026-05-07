@@ -793,16 +793,23 @@ function Scriptora:CreateKeySystem(opts)
             return false, "Invalid key."
         elseif method == "URL" then
             local ok, result = pcall(function()
+                local requestUrl = url
+                if opts.MethodType ~= "POST" then
+                    requestUrl = url .. (url:find("?") and "&" or "?") .. (opts.KeyParam or "key") .. "=" .. HttpService:UrlEncode(key)
+                end
+                
                 local resp = Executor.request({
-                    Url = url .. "?key=" .. HttpService:UrlEncode(key),
-                    Method = "GET",
+                    Url = requestUrl,
+                    Method = opts.MethodType or "GET",
+                    Headers = opts.Headers or { ["Content-Type"] = "application/json" },
+                    Body = opts.MethodType == "POST" and HttpService:JSONEncode(opts.Body or { key = key }) or nil
                 })
+                
                 if resp.StatusCode == 200 then
                     local body = resp.Body
                     -- support JSON responses
-                    local parsed = pcall(function() return HttpService:JSONDecode(body) end)
-                    if parsed then
-                        local data = HttpService:JSONDecode(body)
+                    local success_parse, data = pcall(HttpService.JSONDecode, HttpService, body)
+                    if success_parse and data then
                         if data.success or data.valid or data.status == "success" or data.message == "valid" then
                             return true
                         end
@@ -819,6 +826,36 @@ function Scriptora:CreateKeySystem(opts)
                 return true, "Key validated!"
             end
             return false, "Invalid key or server error."
+        elseif method == "KeyAuth" then
+            local ok, result = pcall(function()
+                -- KeyAuth requires Init first
+                local initUrl = string.format("https://keyauth.win/api/1.1/?name=%s&ownerid=%s&type=init&ver=%s", 
+                    opts.AppName, opts.OwnerID, opts.Version or "1.0")
+                local initResp = Executor.request({ Url = initUrl, Method = "GET" })
+                local initData = HttpService:JSONDecode(initResp.Body)
+                
+                if initData.success then
+                    local sessionid = initData.sessionid
+                    local logUrl = string.format("https://keyauth.win/api/1.1/?name=%s&ownerid=%s&type=license&key=%s&ver=%s&sessionid=%s",
+                        opts.AppName, opts.OwnerID, key, opts.Version or "1.0", sessionid)
+                    local logResp = Executor.request({ Url = logUrl, Method = "GET" })
+                    local logData = HttpService:JSONDecode(logResp.Body)
+                    
+                    if logData.success then return true end
+                end
+                return false
+            end)
+            if ok and result then return true, "KeyAuth validated!" end
+            return false, "Invalid KeyAuth license."
+        elseif method == "Panda" then
+            local ok, result = pcall(function()
+                local serviceID = opts.ServiceID
+                local pandaUrl = string.format("https://api.pandadevelopment.net/v1/sdk/test/proxy?service=%s&key=%s", serviceID, key)
+                local resp = Executor.request({ Url = pandaUrl, Method = "GET" })
+                return resp.Body:find("success") or resp.Body:find("valid")
+            end)
+            if ok and result then return true, "PandaAuth validated!" end
+            return false, "Invalid PandaAuth key."
         elseif method == "Custom" and validateFunc then
             return validateFunc(key)
         end
@@ -1584,15 +1621,6 @@ function Scriptora:CreateWindow(opts)
         shadow(watermark, 0.65)
 
         -- tiny accent dot
-        create("Frame", {
-            BackgroundColor3 = theme.Accent,
-            Position = UDim2.new(0, 8, 0.5, -3),
-            Size = UDim2.new(0, 6, 0, 6),
-            BorderSizePixel = 0,
-            Parent = watermark,
-        }):FindFirstChildOfClass("UICorner") or corner(watermark:FindFirstChild("Frame") or create("Frame", { Parent = watermark }), 3)
-
-        -- fix: create the dot properly
         local dot = create("Frame", {
             BackgroundColor3 = theme.Accent,
             Position = UDim2.new(0, 8, 0.5, -3),
@@ -1692,7 +1720,7 @@ function Scriptora:CreateWindow(opts)
         corner(tabBtn, 7)
 
         if tab.Icon ~= "" then
-            local tabIcon = create("ImageLabel", {
+            create("ImageLabel", {
                 BackgroundTransparency = 1,
                 Position = UDim2.new(0, 10, 0.5, -8),
                 Size = UDim2.new(0, 16, 0, 16),
@@ -1718,13 +1746,12 @@ function Scriptora:CreateWindow(opts)
             for _, t in ipairs(W.Tabs) do
                 t.Page.Visible = false
                 tween(t.Button, 0.2, { BackgroundTransparency = 1, TextColor3 = W.CurrentTheme.SubText })
-                local ab = t.Button:FindFirstChild("Frame")
-                if ab and ab:IsA("Frame") then tween(ab, 0.2, { Size = UDim2.new(0, 0, 0, 14) }) end
+                local ab = t.Button:FindFirstChildOfClass("Frame")
+                if ab then tween(ab, 0.2, { Size = UDim2.new(0, 0, 0, 14) }) end
             end
             page.Visible = true
             tween(tabBtn, 0.2, { BackgroundTransparency = 0.15, BackgroundColor3 = W.CurrentTheme.Tertiary, TextColor3 = W.CurrentTheme.Text })
             tween(accentBar, 0.25, { Size = UDim2.new(0, 3, 0, 18) }, Enum.EasingStyle.Back)
-
             page.CanvasPosition = Vector2.new(0, 0)
         end
 
@@ -2181,6 +2208,7 @@ function Scriptora:CreateWindow(opts)
                 Parent = frame,
             })
             corner(selectButton, 5)
+            addRipple(selectButton, theme)
 
             local arrow = create("TextLabel", {
                 BackgroundTransparency = 1,
@@ -2479,6 +2507,7 @@ function Scriptora:CreateWindow(opts)
             })
             corner(btn, 5)
             stroke(btn, theme.Border, 1, 0.5)
+            addRipple(btn, theme)
 
             btn.MouseButton1Click:Connect(function()
                 keybind.Listening = true
@@ -2990,10 +3019,8 @@ function Scriptora:CreateWindow(opts)
     searchBox:GetPropertyChangedSignal("Text"):Connect(function()
         local query = string.lower(searchBox.Text)
         if query == "" then
-            for _, t in ipairs(W.Tabs) do
-                for _, c in ipairs(t.Page:GetChildren()) do
-                    if c:IsA("Frame") or c:IsA("TextLabel") then c.Visible = true end
-                end
+            for _, entry in ipairs(W.AllElements) do
+                entry.Frame.Visible = true
             end
             return
         end
@@ -3224,25 +3251,12 @@ function Scriptora:CreateWindow(opts)
     return W
 end
 
--- ============================================================
--- // GLOBAL UTILITIES
--- ============================================================
-function Scriptora:GetFlag(flag)     return Scriptora.Flags[flag] end
-function Scriptora:SetFlag(flag, v)  Scriptora.Flags[flag] = v end
-
 function Scriptora:DestroyAll()
-    for _, w in ipairs(self.Windows) do pcall(function() w:Destroy() end) end
-    self.Windows = {}
+    for _, w in ipairs(Scriptora.Windows) do
+        pcall(function() w:Destroy() end)
+    end
+    table.clear(Scriptora.Windows)
 end
 
-function Scriptora:GetExecutor()     return Executor.identifyexecutor() end
-function Scriptora:GetThemes()       return Scriptora.Themes end
-
--- ============================================================
--- // REGISTER GLOBALLY
--- ============================================================
-if getgenv then getgenv().Scriptora = Scriptora end
-_G.Scriptora = Scriptora
-shared.Scriptora = Scriptora
-
+getgenv().Scriptora = Scriptora
 return Scriptora
