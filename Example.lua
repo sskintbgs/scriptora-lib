@@ -86,7 +86,7 @@ local function createEntity(ent)
         HealthBack = Drawing.new("Line"),
         HeadC = Drawing.new("Circle"),
         LookL = Drawing.new("Line"),
-        Arrow = Drawing.new("Triangle"),
+        Arrow = pcall(function() return Drawing.new("Triangle") end) and Drawing.new("Triangle") or nil,
     }
     
     -- Setup Defaults
@@ -102,7 +102,9 @@ local function createEntity(ent)
     d.HealthBack.Thickness = 3; d.HealthBack.Color = Color3.new(0,0,0); d.HealthBack.Transparency = 0.5
     d.HeadC.Thickness = 1; d.HeadC.Outline = true
     d.LookL.Thickness = 1; d.LookL.Outline = true
-    d.Arrow.Filled = true; d.Arrow.Thickness = 0
+    if d.Arrow then
+        d.Arrow.Filled = true; d.Arrow.Thickness = 0
+    end
     
     ESP_REGISTRY[ent] = d
 end
@@ -343,8 +345,7 @@ Scriptora:CreateKeySystem({
                         c[1].From = Vector2.new(x, y); c[1].To = Vector2.new(x + cl, y)
                         c[2].From = Vector2.new(x, y); c[2].To = Vector2.new(x, y + cl)
                         c[3].From = Vector2.new(x + w, y); c[3].To = Vector2.new(x + w - cl, y)
-                        c[4].From = Vector2.new(x + w, y); c[4].To = Vector2.new(x, y + cl) -- Fixed typo
-                        c[4].To = Vector2.new(x + w, y + cl)
+                        c[4].From = Vector2.new(x + w, y); c[4].To = Vector2.new(x + w, y + cl)
                         c[5].From = Vector2.new(x, y + h); c[5].To = Vector2.new(x + cl, y + h)
                         c[6].From = Vector2.new(x, y + h); c[6].To = Vector2.new(x, y + h - cl)
                         c[7].From = Vector2.new(x + w, y + h); c[7].To = Vector2.new(x + w - cl, y + h)
@@ -387,7 +388,7 @@ Scriptora:CreateKeySystem({
                     elseif char:FindFirstChild("ScriptoraHighlight") then char.ScriptoraHighlight:Destroy() end
                 else
                     -- Compass
-                    if Config.Visuals.Compass then
+                    if Config.Visuals.Compass and d.Arrow then
                         local screenCenter = Camera.ViewportSize / 2
                         local dir = (hrp.Position - Camera.CFrame.Position).Unit
                         local angle = math.atan2(dir.Z, dir.X) + math.rad(90)
@@ -398,7 +399,7 @@ Scriptora:CreateKeySystem({
                         local p2 = arrowPos + Vector2.new(math.cos(finalAngle + math.rad(140)), math.sin(finalAngle + math.rad(140))) * 15
                         local p3 = arrowPos + Vector2.new(math.cos(finalAngle - math.rad(140)), math.sin(finalAngle - math.rad(140))) * 15
                         d.Arrow.Visible = true; d.Arrow.PointA = p1; d.Arrow.PointB = p2; d.Arrow.PointC = p3; d.Arrow.Color = Config.Colors.CompassColor
-                    else d.Arrow.Visible = false end
+                    elseif d.Arrow then d.Arrow.Visible = false end
                     for _, obj in pairs(d) do if obj ~= d.Arrow then if type(obj) == "table" then for _, l in pairs(obj) do l.Visible = false end else obj.Visible = false end end end
                 end
             else
