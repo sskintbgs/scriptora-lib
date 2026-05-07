@@ -1,5 +1,5 @@
 --[[
-    Scriptora UI Library
+    Scriptora UI Library v3.0.0
     Executor-only Roblox UI engine — designed for loadstring use.
 
     Usage flow:
@@ -7,6 +7,20 @@
         2) In any subsequent script:
                 local Scriptora = getgenv().Scriptora
                 local Window = Scriptora:CreateWindow({...})
+
+    Key System Usage:
+        Scriptora:CreateKeySystem({
+            Name = "My Script",
+            Method = "Hardcoded",              -- "Hardcoded" | "URL" | "Custom"
+            Keys = {"key1", "key2"},            -- for Hardcoded
+            -- URL = "https://keyauth.win/...", -- for URL-based (KeyAuth etc.)
+            -- ValidateFunc = function(key) ... end, -- for Custom
+            SaveKey = true,
+            KeyFolder = "Scriptora",
+            OnValidated = function()
+                -- create your window here
+            end,
+        })
 
     Supports: Synapse X, Script-Ware, KRNL, Fluxus, Solara, Wave,
               Hydrogen, Delta, Arceus X, Codex, Trigon, and most other
@@ -20,7 +34,7 @@ end
 
 local Scriptora = {}
 Scriptora.__index = Scriptora
-Scriptora.Version = "2.0.0"
+Scriptora.Version = "3.0.0"
 Scriptora.Flags = {}
 Scriptora.Connections = {}
 Scriptora.Windows = {}
@@ -48,7 +62,6 @@ local Executor = {}
 Executor.identifyexecutor = (identifyexecutor or (syn and syn.identify) or function() return "Unknown" end)
 
 Executor.protectgui = function(gui)
-    -- Try every protected-parent technique, fall back to PlayerGui
     local ok = pcall(function()
         if syn and syn.protect_gui then
             syn.protect_gui(gui)
@@ -66,164 +79,356 @@ Executor.protectgui = function(gui)
     end
 end
 
-Executor.writefile = (writefile or function() end)
-Executor.readfile  = (readfile  or function() return nil end)
-Executor.isfile    = (isfile    or function() return false end)
-Executor.makefolder = (makefolder or function() end)
-Executor.isfolder   = (isfolder   or function() return false end)
-Executor.listfiles  = (listfiles  or function() return {} end)
-Executor.delfile    = (delfile    or function() end)
+Executor.writefile   = (writefile or function() end)
+Executor.readfile    = (readfile  or function() return nil end)
+Executor.isfile      = (isfile    or function() return false end)
+Executor.makefolder  = (makefolder or function() end)
+Executor.isfolder    = (isfolder   or function() return false end)
+Executor.listfiles   = (listfiles  or function() return {} end)
+Executor.delfile     = (delfile    or function() end)
+Executor.request     = (request or http_request or (syn and syn.request) or function() return { StatusCode = 0, Body = "" } end)
 
-Executor.setclipboard = (setclipboard or (toclipboard) or function() end)
+Executor.setclipboard   = (setclipboard or (toclipboard) or function() end)
 Executor.getcustomasset = (getcustomasset or (getsynasset) or function() return "" end)
 
 -- ============================================================
--- // THEMES
+-- // THEMES  (16 total)
 -- ============================================================
 Scriptora.Themes = {
-    Amethyst = {  -- // default purple+black
-        Background    = Color3.fromRGB(14, 10, 20),
-        Secondary     = Color3.fromRGB(22, 16, 30),
-        Tertiary      = Color3.fromRGB(30, 22, 42),
-        Element       = Color3.fromRGB(40, 30, 56),
-        ElementHover  = Color3.fromRGB(54, 40, 76),
-        Border        = Color3.fromRGB(70, 50, 110),
-        Accent        = Color3.fromRGB(170, 100, 255),
-        AccentHover   = Color3.fromRGB(195, 130, 255),
-        AccentDim     = Color3.fromRGB(120, 70, 200),
-        Text          = Color3.fromRGB(240, 235, 250),
-        SubText       = Color3.fromRGB(170, 155, 200),
-        Disabled      = Color3.fromRGB(90, 80, 110),
-        Success       = Color3.fromRGB(100, 220, 140),
-        Warning       = Color3.fromRGB(255, 180, 80),
-        Error         = Color3.fromRGB(255, 90, 110),
-        Info          = Color3.fromRGB(100, 180, 255),
+    -- ── SIGNATURE ──
+    Amethyst = {
+        Background    = Color3.fromRGB(12, 8, 18),
+        Secondary     = Color3.fromRGB(20, 14, 28),
+        Tertiary      = Color3.fromRGB(28, 20, 40),
+        Element       = Color3.fromRGB(38, 28, 54),
+        ElementHover  = Color3.fromRGB(52, 38, 74),
+        Border        = Color3.fromRGB(58, 42, 88),
+        Accent        = Color3.fromRGB(168, 96, 255),
+        AccentHover   = Color3.fromRGB(192, 128, 255),
+        AccentDim     = Color3.fromRGB(118, 68, 198),
+        AccentGlow    = Color3.fromRGB(168, 96, 255),
+        Text          = Color3.fromRGB(242, 238, 252),
+        SubText       = Color3.fromRGB(160, 148, 192),
+        Disabled      = Color3.fromRGB(88, 78, 108),
+        Success       = Color3.fromRGB(86, 222, 132),
+        Warning       = Color3.fromRGB(255, 186, 72),
+        Error         = Color3.fromRGB(255, 82, 106),
+        Info          = Color3.fromRGB(96, 176, 255),
     },
+
+    -- ── DARK / NEUTRAL ──
     Dark = {
-        Background    = Color3.fromRGB(20, 20, 24),
-        Secondary     = Color3.fromRGB(28, 28, 33),
-        Tertiary      = Color3.fromRGB(36, 36, 42),
-        Element       = Color3.fromRGB(44, 44, 51),
-        ElementHover  = Color3.fromRGB(54, 54, 62),
-        Border        = Color3.fromRGB(50, 50, 58),
-        Accent        = Color3.fromRGB(120, 120, 255),
-        AccentHover   = Color3.fromRGB(140, 140, 255),
-        AccentDim     = Color3.fromRGB(80, 80, 200),
-        Text          = Color3.fromRGB(235, 235, 240),
-        SubText       = Color3.fromRGB(160, 160, 170),
-        Disabled      = Color3.fromRGB(90, 90, 100),
-        Success       = Color3.fromRGB(100, 220, 140),
-        Warning       = Color3.fromRGB(255, 180, 80),
-        Error         = Color3.fromRGB(255, 90, 110),
-        Info          = Color3.fromRGB(100, 180, 255),
+        Background    = Color3.fromRGB(16, 16, 20),
+        Secondary     = Color3.fromRGB(24, 24, 30),
+        Tertiary      = Color3.fromRGB(32, 32, 40),
+        Element       = Color3.fromRGB(42, 42, 50),
+        ElementHover  = Color3.fromRGB(54, 54, 64),
+        Border        = Color3.fromRGB(46, 46, 56),
+        Accent        = Color3.fromRGB(108, 118, 255),
+        AccentHover   = Color3.fromRGB(132, 140, 255),
+        AccentDim     = Color3.fromRGB(78, 86, 198),
+        AccentGlow    = Color3.fromRGB(108, 118, 255),
+        Text          = Color3.fromRGB(238, 238, 244),
+        SubText       = Color3.fromRGB(148, 148, 166),
+        Disabled      = Color3.fromRGB(86, 86, 98),
+        Success       = Color3.fromRGB(86, 222, 132),
+        Warning       = Color3.fromRGB(255, 186, 72),
+        Error         = Color3.fromRGB(255, 82, 106),
+        Info          = Color3.fromRGB(96, 176, 255),
     },
+
+    -- ── LIGHT ──
     Light = {
-        Background    = Color3.fromRGB(245, 245, 248),
-        Secondary     = Color3.fromRGB(230, 230, 235),
-        Tertiary      = Color3.fromRGB(215, 215, 220),
-        Element       = Color3.fromRGB(200, 200, 210),
-        ElementHover  = Color3.fromRGB(180, 180, 195),
-        Border        = Color3.fromRGB(170, 170, 185),
-        Accent        = Color3.fromRGB(100, 70, 200),
-        AccentHover   = Color3.fromRGB(120, 90, 220),
-        AccentDim     = Color3.fromRGB(80, 50, 160),
-        Text          = Color3.fromRGB(20, 20, 30),
-        SubText       = Color3.fromRGB(80, 80, 100),
-        Disabled      = Color3.fromRGB(150, 150, 160),
-        Success       = Color3.fromRGB(40, 150, 80),
-        Warning       = Color3.fromRGB(200, 130, 40),
-        Error         = Color3.fromRGB(200, 50, 70),
-        Info          = Color3.fromRGB(50, 120, 200),
+        Background    = Color3.fromRGB(248, 248, 252),
+        Secondary     = Color3.fromRGB(236, 236, 242),
+        Tertiary      = Color3.fromRGB(222, 222, 230),
+        Element       = Color3.fromRGB(208, 208, 218),
+        ElementHover  = Color3.fromRGB(190, 190, 204),
+        Border        = Color3.fromRGB(180, 180, 198),
+        Accent        = Color3.fromRGB(96, 64, 198),
+        AccentHover   = Color3.fromRGB(118, 86, 218),
+        AccentDim     = Color3.fromRGB(76, 46, 158),
+        AccentGlow    = Color3.fromRGB(96, 64, 198),
+        Text          = Color3.fromRGB(18, 18, 28),
+        SubText       = Color3.fromRGB(76, 76, 98),
+        Disabled      = Color3.fromRGB(148, 148, 162),
+        Success       = Color3.fromRGB(32, 148, 76),
+        Warning       = Color3.fromRGB(198, 128, 36),
+        Error         = Color3.fromRGB(198, 46, 66),
+        Info          = Color3.fromRGB(46, 118, 198),
     },
+
+    -- ── MIDNIGHT (GitHub-dark) ──
     Midnight = {
-        Background    = Color3.fromRGB(13, 17, 23),
-        Secondary     = Color3.fromRGB(22, 27, 34),
-        Tertiary      = Color3.fromRGB(33, 38, 45),
-        Element       = Color3.fromRGB(40, 46, 54),
-        ElementHover  = Color3.fromRGB(50, 56, 64),
-        Border        = Color3.fromRGB(48, 54, 61),
-        Accent        = Color3.fromRGB(88, 166, 255),
-        AccentHover   = Color3.fromRGB(108, 186, 255),
-        AccentDim     = Color3.fromRGB(60, 130, 220),
-        Text          = Color3.fromRGB(230, 237, 243),
-        SubText       = Color3.fromRGB(139, 148, 158),
-        Disabled      = Color3.fromRGB(80, 90, 100),
-        Success       = Color3.fromRGB(100, 220, 140),
-        Warning       = Color3.fromRGB(255, 180, 80),
-        Error         = Color3.fromRGB(255, 90, 110),
-        Info          = Color3.fromRGB(100, 180, 255),
+        Background    = Color3.fromRGB(10, 14, 20),
+        Secondary     = Color3.fromRGB(18, 24, 32),
+        Tertiary      = Color3.fromRGB(28, 34, 44),
+        Element       = Color3.fromRGB(38, 44, 56),
+        ElementHover  = Color3.fromRGB(48, 56, 68),
+        Border        = Color3.fromRGB(42, 50, 62),
+        Accent        = Color3.fromRGB(82, 162, 255),
+        AccentHover   = Color3.fromRGB(108, 182, 255),
+        AccentDim     = Color3.fromRGB(56, 128, 218),
+        AccentGlow    = Color3.fromRGB(82, 162, 255),
+        Text          = Color3.fromRGB(232, 238, 246),
+        SubText       = Color3.fromRGB(132, 142, 158),
+        Disabled      = Color3.fromRGB(76, 86, 98),
+        Success       = Color3.fromRGB(86, 222, 132),
+        Warning       = Color3.fromRGB(255, 186, 72),
+        Error         = Color3.fromRGB(255, 82, 106),
+        Info          = Color3.fromRGB(96, 176, 255),
     },
+
+    -- ── ROSE ──
     Rose = {
-        Background    = Color3.fromRGB(28, 18, 22),
-        Secondary     = Color3.fromRGB(38, 24, 30),
-        Tertiary      = Color3.fromRGB(48, 32, 38),
-        Element       = Color3.fromRGB(58, 40, 46),
-        ElementHover  = Color3.fromRGB(70, 48, 56),
-        Border        = Color3.fromRGB(66, 46, 54),
-        Accent        = Color3.fromRGB(255, 105, 145),
-        AccentHover   = Color3.fromRGB(255, 125, 165),
-        AccentDim     = Color3.fromRGB(200, 70, 110),
-        Text          = Color3.fromRGB(245, 235, 240),
-        SubText       = Color3.fromRGB(180, 150, 165),
-        Disabled      = Color3.fromRGB(100, 80, 90),
-        Success       = Color3.fromRGB(100, 220, 140),
-        Warning       = Color3.fromRGB(255, 180, 80),
-        Error         = Color3.fromRGB(255, 90, 110),
-        Info          = Color3.fromRGB(100, 180, 255),
+        Background    = Color3.fromRGB(22, 14, 18),
+        Secondary     = Color3.fromRGB(34, 22, 28),
+        Tertiary      = Color3.fromRGB(46, 30, 38),
+        Element       = Color3.fromRGB(58, 38, 48),
+        ElementHover  = Color3.fromRGB(72, 48, 58),
+        Border        = Color3.fromRGB(68, 44, 56),
+        Accent        = Color3.fromRGB(255, 98, 142),
+        AccentHover   = Color3.fromRGB(255, 128, 164),
+        AccentDim     = Color3.fromRGB(198, 68, 108),
+        AccentGlow    = Color3.fromRGB(255, 98, 142),
+        Text          = Color3.fromRGB(248, 238, 242),
+        SubText       = Color3.fromRGB(178, 148, 162),
+        Disabled      = Color3.fromRGB(98, 78, 88),
+        Success       = Color3.fromRGB(86, 222, 132),
+        Warning       = Color3.fromRGB(255, 186, 72),
+        Error         = Color3.fromRGB(255, 82, 106),
+        Info          = Color3.fromRGB(96, 176, 255),
     },
+
+    -- ── FOREST ──
     Forest = {
-        Background    = Color3.fromRGB(12, 18, 14),
-        Secondary     = Color3.fromRGB(18, 28, 22),
-        Tertiary      = Color3.fromRGB(24, 38, 30),
-        Element       = Color3.fromRGB(34, 52, 42),
-        ElementHover  = Color3.fromRGB(44, 66, 54),
-        Border        = Color3.fromRGB(54, 80, 64),
-        Accent        = Color3.fromRGB(80, 220, 120),
-        AccentHover   = Color3.fromRGB(100, 255, 150),
-        AccentDim     = Color3.fromRGB(50, 160, 90),
-        Text          = Color3.fromRGB(220, 245, 230),
-        SubText       = Color3.fromRGB(140, 180, 160),
-        Disabled      = Color3.fromRGB(70, 90, 80),
-        Success       = Color3.fromRGB(100, 220, 140),
-        Warning       = Color3.fromRGB(255, 180, 80),
-        Error         = Color3.fromRGB(255, 90, 110),
-        Info          = Color3.fromRGB(100, 180, 255),
+        Background    = Color3.fromRGB(10, 16, 12),
+        Secondary     = Color3.fromRGB(16, 26, 20),
+        Tertiary      = Color3.fromRGB(22, 36, 28),
+        Element       = Color3.fromRGB(32, 50, 40),
+        ElementHover  = Color3.fromRGB(42, 64, 52),
+        Border        = Color3.fromRGB(48, 72, 58),
+        Accent        = Color3.fromRGB(72, 218, 112),
+        AccentHover   = Color3.fromRGB(96, 242, 142),
+        AccentDim     = Color3.fromRGB(48, 162, 86),
+        AccentGlow    = Color3.fromRGB(72, 218, 112),
+        Text          = Color3.fromRGB(222, 248, 232),
+        SubText       = Color3.fromRGB(132, 178, 152),
+        Disabled      = Color3.fromRGB(68, 88, 78),
+        Success       = Color3.fromRGB(86, 222, 132),
+        Warning       = Color3.fromRGB(255, 186, 72),
+        Error         = Color3.fromRGB(255, 82, 106),
+        Info          = Color3.fromRGB(96, 176, 255),
     },
+
+    -- ── OCEAN ──
     Ocean = {
-        Background    = Color3.fromRGB(10, 18, 28),
-        Secondary     = Color3.fromRGB(16, 26, 40),
-        Tertiary      = Color3.fromRGB(22, 36, 54),
-        Element       = Color3.fromRGB(30, 48, 70),
-        ElementHover  = Color3.fromRGB(40, 60, 86),
-        Border        = Color3.fromRGB(40, 70, 100),
-        Accent        = Color3.fromRGB(80, 200, 230),
-        AccentHover   = Color3.fromRGB(110, 220, 245),
-        AccentDim     = Color3.fromRGB(50, 150, 190),
-        Text          = Color3.fromRGB(225, 240, 250),
-        SubText       = Color3.fromRGB(140, 170, 195),
-        Disabled      = Color3.fromRGB(80, 100, 120),
-        Success       = Color3.fromRGB(100, 220, 140),
-        Warning       = Color3.fromRGB(255, 180, 80),
-        Error         = Color3.fromRGB(255, 90, 110),
-        Info          = Color3.fromRGB(100, 180, 255),
+        Background    = Color3.fromRGB(8, 16, 26),
+        Secondary     = Color3.fromRGB(14, 24, 38),
+        Tertiary      = Color3.fromRGB(20, 34, 52),
+        Element       = Color3.fromRGB(28, 46, 68),
+        ElementHover  = Color3.fromRGB(38, 58, 84),
+        Border        = Color3.fromRGB(36, 64, 96),
+        Accent        = Color3.fromRGB(72, 196, 228),
+        AccentHover   = Color3.fromRGB(102, 218, 246),
+        AccentDim     = Color3.fromRGB(46, 148, 186),
+        AccentGlow    = Color3.fromRGB(72, 196, 228),
+        Text          = Color3.fromRGB(228, 242, 252),
+        SubText       = Color3.fromRGB(132, 168, 192),
+        Disabled      = Color3.fromRGB(76, 96, 118),
+        Success       = Color3.fromRGB(86, 222, 132),
+        Warning       = Color3.fromRGB(255, 186, 72),
+        Error         = Color3.fromRGB(255, 82, 106),
+        Info          = Color3.fromRGB(96, 176, 255),
     },
+
+    -- ── SUNSET ──
     Sunset = {
-        Background    = Color3.fromRGB(20, 12, 16),
-        Secondary     = Color3.fromRGB(32, 18, 24),
-        Tertiary      = Color3.fromRGB(45, 25, 32),
-        Element       = Color3.fromRGB(60, 35, 45),
-        ElementHover  = Color3.fromRGB(75, 45, 55),
-        Border        = Color3.fromRGB(90, 50, 60),
-        Accent        = Color3.fromRGB(255, 120, 60),
-        AccentHover   = Color3.fromRGB(255, 150, 80),
-        AccentDim     = Color3.fromRGB(180, 80, 40),
-        Text          = Color3.fromRGB(255, 240, 230),
-        SubText       = Color3.fromRGB(200, 160, 160),
-        Disabled      = Color3.fromRGB(100, 80, 85),
-        Success       = Color3.fromRGB(100, 220, 140),
-        Warning       = Color3.fromRGB(255, 180, 80),
-        Error         = Color3.fromRGB(255, 90, 110),
-        Info          = Color3.fromRGB(100, 180, 255),
+        Background    = Color3.fromRGB(18, 10, 14),
+        Secondary     = Color3.fromRGB(30, 16, 22),
+        Tertiary      = Color3.fromRGB(44, 24, 32),
+        Element       = Color3.fromRGB(58, 34, 42),
+        ElementHover  = Color3.fromRGB(74, 44, 54),
+        Border        = Color3.fromRGB(88, 48, 58),
+        Accent        = Color3.fromRGB(255, 114, 56),
+        AccentHover   = Color3.fromRGB(255, 144, 82),
+        AccentDim     = Color3.fromRGB(178, 76, 38),
+        AccentGlow    = Color3.fromRGB(255, 114, 56),
+        Text          = Color3.fromRGB(255, 242, 232),
+        SubText       = Color3.fromRGB(198, 158, 156),
+        Disabled      = Color3.fromRGB(98, 78, 82),
+        Success       = Color3.fromRGB(86, 222, 132),
+        Warning       = Color3.fromRGB(255, 186, 72),
+        Error         = Color3.fromRGB(255, 82, 106),
+        Info          = Color3.fromRGB(96, 176, 255),
+    },
+
+    -- ── CYBERPUNK ──
+    Cyberpunk = {
+        Background    = Color3.fromRGB(8, 6, 16),
+        Secondary     = Color3.fromRGB(14, 10, 28),
+        Tertiary      = Color3.fromRGB(22, 16, 42),
+        Element       = Color3.fromRGB(32, 22, 56),
+        ElementHover  = Color3.fromRGB(44, 30, 72),
+        Border        = Color3.fromRGB(62, 28, 98),
+        Accent        = Color3.fromRGB(255, 42, 192),
+        AccentHover   = Color3.fromRGB(255, 82, 212),
+        AccentDim     = Color3.fromRGB(186, 28, 142),
+        AccentGlow    = Color3.fromRGB(255, 42, 192),
+        Text          = Color3.fromRGB(248, 232, 255),
+        SubText       = Color3.fromRGB(168, 128, 198),
+        Disabled      = Color3.fromRGB(88, 62, 108),
+        Success       = Color3.fromRGB(42, 255, 168),
+        Warning       = Color3.fromRGB(255, 222, 42),
+        Error         = Color3.fromRGB(255, 42, 72),
+        Info          = Color3.fromRGB(42, 198, 255),
+    },
+
+    -- ── DRACULA ──
+    Dracula = {
+        Background    = Color3.fromRGB(24, 24, 36),
+        Secondary     = Color3.fromRGB(34, 34, 52),
+        Tertiary      = Color3.fromRGB(44, 44, 66),
+        Element       = Color3.fromRGB(56, 56, 82),
+        ElementHover  = Color3.fromRGB(68, 68, 98),
+        Border        = Color3.fromRGB(62, 62, 92),
+        Accent        = Color3.fromRGB(188, 148, 255),
+        AccentHover   = Color3.fromRGB(208, 172, 255),
+        AccentDim     = Color3.fromRGB(148, 112, 218),
+        AccentGlow    = Color3.fromRGB(188, 148, 255),
+        Text          = Color3.fromRGB(248, 248, 242),
+        SubText       = Color3.fromRGB(152, 152, 178),
+        Disabled      = Color3.fromRGB(92, 92, 112),
+        Success       = Color3.fromRGB(80, 250, 123),
+        Warning       = Color3.fromRGB(241, 250, 140),
+        Error         = Color3.fromRGB(255, 85, 85),
+        Info          = Color3.fromRGB(139, 233, 253),
+    },
+
+    -- ── NORD ──
+    Nord = {
+        Background    = Color3.fromRGB(36, 40, 52),
+        Secondary     = Color3.fromRGB(42, 48, 62),
+        Tertiary      = Color3.fromRGB(52, 58, 74),
+        Element       = Color3.fromRGB(62, 70, 88),
+        ElementHover  = Color3.fromRGB(72, 82, 102),
+        Border        = Color3.fromRGB(68, 76, 96),
+        Accent        = Color3.fromRGB(136, 192, 208),
+        AccentHover   = Color3.fromRGB(162, 210, 224),
+        AccentDim     = Color3.fromRGB(102, 162, 182),
+        AccentGlow    = Color3.fromRGB(136, 192, 208),
+        Text          = Color3.fromRGB(236, 239, 244),
+        SubText       = Color3.fromRGB(168, 178, 198),
+        Disabled      = Color3.fromRGB(98, 108, 128),
+        Success       = Color3.fromRGB(163, 190, 140),
+        Warning       = Color3.fromRGB(235, 203, 139),
+        Error         = Color3.fromRGB(191, 97, 106),
+        Info          = Color3.fromRGB(129, 161, 193),
+    },
+
+    -- ── MONOKAI ──
+    Monokai = {
+        Background    = Color3.fromRGB(32, 32, 28),
+        Secondary     = Color3.fromRGB(42, 42, 36),
+        Tertiary      = Color3.fromRGB(54, 54, 48),
+        Element       = Color3.fromRGB(66, 66, 58),
+        ElementHover  = Color3.fromRGB(78, 78, 70),
+        Border        = Color3.fromRGB(72, 72, 64),
+        Accent        = Color3.fromRGB(166, 226, 46),
+        AccentHover   = Color3.fromRGB(186, 238, 76),
+        AccentDim     = Color3.fromRGB(128, 182, 28),
+        AccentGlow    = Color3.fromRGB(166, 226, 46),
+        Text          = Color3.fromRGB(248, 248, 242),
+        SubText       = Color3.fromRGB(168, 168, 152),
+        Disabled      = Color3.fromRGB(98, 98, 88),
+        Success       = Color3.fromRGB(166, 226, 46),
+        Warning       = Color3.fromRGB(253, 151, 31),
+        Error         = Color3.fromRGB(249, 38, 114),
+        Info          = Color3.fromRGB(102, 217, 239),
+    },
+
+    -- ── BLOOD ──
+    Blood = {
+        Background    = Color3.fromRGB(14, 8, 8),
+        Secondary     = Color3.fromRGB(24, 12, 12),
+        Tertiary      = Color3.fromRGB(36, 16, 16),
+        Element       = Color3.fromRGB(50, 22, 22),
+        ElementHover  = Color3.fromRGB(66, 28, 28),
+        Border        = Color3.fromRGB(72, 26, 26),
+        Accent        = Color3.fromRGB(218, 36, 52),
+        AccentHover   = Color3.fromRGB(238, 62, 78),
+        AccentDim     = Color3.fromRGB(168, 24, 38),
+        AccentGlow    = Color3.fromRGB(218, 36, 52),
+        Text          = Color3.fromRGB(252, 238, 238),
+        SubText       = Color3.fromRGB(188, 148, 148),
+        Disabled      = Color3.fromRGB(98, 72, 72),
+        Success       = Color3.fromRGB(86, 222, 132),
+        Warning       = Color3.fromRGB(255, 186, 72),
+        Error         = Color3.fromRGB(255, 82, 106),
+        Info          = Color3.fromRGB(96, 176, 255),
+    },
+
+    -- ── NEON ──
+    Neon = {
+        Background    = Color3.fromRGB(6, 6, 12),
+        Secondary     = Color3.fromRGB(10, 10, 22),
+        Tertiary      = Color3.fromRGB(16, 16, 34),
+        Element       = Color3.fromRGB(22, 22, 48),
+        ElementHover  = Color3.fromRGB(30, 30, 64),
+        Border        = Color3.fromRGB(42, 42, 86),
+        Accent        = Color3.fromRGB(42, 255, 198),
+        AccentHover   = Color3.fromRGB(82, 255, 218),
+        AccentDim     = Color3.fromRGB(28, 186, 148),
+        AccentGlow    = Color3.fromRGB(42, 255, 198),
+        Text          = Color3.fromRGB(232, 255, 248),
+        SubText       = Color3.fromRGB(128, 188, 172),
+        Disabled      = Color3.fromRGB(62, 88, 78),
+        Success       = Color3.fromRGB(42, 255, 168),
+        Warning       = Color3.fromRGB(255, 222, 42),
+        Error         = Color3.fromRGB(255, 42, 96),
+        Info          = Color3.fromRGB(42, 168, 255),
+    },
+
+    -- ── CATPPUCCIN (Mocha) ──
+    Catppuccin = {
+        Background    = Color3.fromRGB(30, 30, 46),
+        Secondary     = Color3.fromRGB(36, 36, 54),
+        Tertiary      = Color3.fromRGB(45, 45, 66),
+        Element       = Color3.fromRGB(56, 56, 80),
+        ElementHover  = Color3.fromRGB(68, 68, 96),
+        Border        = Color3.fromRGB(62, 62, 88),
+        Accent        = Color3.fromRGB(203, 166, 247),
+        AccentHover   = Color3.fromRGB(218, 188, 252),
+        AccentDim     = Color3.fromRGB(162, 128, 212),
+        AccentGlow    = Color3.fromRGB(203, 166, 247),
+        Text          = Color3.fromRGB(205, 214, 244),
+        SubText       = Color3.fromRGB(147, 153, 178),
+        Disabled      = Color3.fromRGB(88, 91, 112),
+        Success       = Color3.fromRGB(166, 227, 161),
+        Warning       = Color3.fromRGB(249, 226, 175),
+        Error         = Color3.fromRGB(243, 139, 168),
+        Info          = Color3.fromRGB(137, 220, 235),
+    },
+
+    -- ── GOLD ──
+    Gold = {
+        Background    = Color3.fromRGB(16, 14, 10),
+        Secondary     = Color3.fromRGB(26, 22, 16),
+        Tertiary      = Color3.fromRGB(38, 32, 22),
+        Element       = Color3.fromRGB(52, 44, 30),
+        ElementHover  = Color3.fromRGB(66, 56, 38),
+        Border        = Color3.fromRGB(78, 64, 38),
+        Accent        = Color3.fromRGB(255, 198, 56),
+        AccentHover   = Color3.fromRGB(255, 216, 96),
+        AccentDim     = Color3.fromRGB(198, 152, 36),
+        AccentGlow    = Color3.fromRGB(255, 198, 56),
+        Text          = Color3.fromRGB(255, 248, 232),
+        SubText       = Color3.fromRGB(198, 178, 142),
+        Disabled      = Color3.fromRGB(108, 96, 72),
+        Success       = Color3.fromRGB(86, 222, 132),
+        Warning       = Color3.fromRGB(255, 186, 72),
+        Error         = Color3.fromRGB(255, 82, 106),
+        Info          = Color3.fromRGB(96, 176, 255),
     },
 }
 
@@ -258,7 +463,7 @@ end
 
 local function stroke(parent, color, thickness, transparency)
     return create("UIStroke", {
-        Color = color or Color3.fromRGB(50,50,58),
+        Color = color or Color3.fromRGB(50, 50, 58),
         Thickness = thickness or 1,
         Transparency = transparency or 0,
         ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
@@ -267,12 +472,7 @@ local function stroke(parent, color, thickness, transparency)
 end
 
 local function gradient(parent, colors, rotation)
-    local cs
-    if typeof(colors) == "ColorSequence" then
-        cs = colors
-    else
-        cs = ColorSequence.new(colors)
-    end
+    local cs = typeof(colors) == "ColorSequence" and colors or ColorSequence.new(colors)
     return create("UIGradient", {
         Color = cs,
         Rotation = rotation or 0,
@@ -280,12 +480,12 @@ local function gradient(parent, colors, rotation)
     })
 end
 
-local function padding(parent, p, l, r, b)
+local function padding(parent, top, left, right, bottom)
     return create("UIPadding", {
-        PaddingTop    = UDim.new(0, p),
-        PaddingBottom = UDim.new(0, b or p),
-        PaddingLeft   = UDim.new(0, l or p),
-        PaddingRight  = UDim.new(0, r or l or p),
+        PaddingTop    = UDim.new(0, top),
+        PaddingBottom = UDim.new(0, bottom or top),
+        PaddingLeft   = UDim.new(0, left or top),
+        PaddingRight  = UDim.new(0, right or left or top),
         Parent = parent,
     })
 end
@@ -304,8 +504,8 @@ end
 local function shadow(parent, transparency)
     return create("ImageLabel", {
         BackgroundTransparency = 1,
-        Image = "rbxassetid://6014261993",  -- soft drop shadow
-        ImageColor3 = Color3.new(0,0,0),
+        Image = "rbxassetid://6014261993",
+        ImageColor3 = Color3.new(0, 0, 0),
         ImageTransparency = transparency or 0.5,
         ScaleType = Enum.ScaleType.Slice,
         SliceCenter = Rect.new(49, 49, 450, 450),
@@ -337,10 +537,8 @@ local function makeDraggable(frame, dragHandle)
         or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
             frame.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
             )
         end
     end)
@@ -349,18 +547,43 @@ end
 local function fetchImage(url)
     if not url or url == "" then return "" end
     if not string.find(url, "http") then return url end
-    
     local filename = "Scriptora_Asset_" .. (url:gsub("[^%w]", "_"):sub(-30)) .. ".png"
-    if Executor.isfile(filename) then 
-        return Executor.getcustomasset(filename) 
+    if Executor.isfile(filename) then
+        return Executor.getcustomasset(filename)
     end
-    
     local success, content = pcall(function() return game:HttpGet(url) end)
     if success then
         pcall(function() Executor.writefile(filename, content) end)
         return Executor.getcustomasset(filename)
     end
     return ""
+end
+
+-- Ripple effect helper
+local function addRipple(button, theme)
+    button.ClipsDescendants = true
+    button.MouseButton1Click:Connect(function()
+        local mx = Mouse.X - button.AbsolutePosition.X
+        local my = Mouse.Y - button.AbsolutePosition.Y
+        local maxDist = math.max(
+            math.sqrt(mx^2 + my^2),
+            math.sqrt((button.AbsoluteSize.X - mx)^2 + my^2),
+            math.sqrt(mx^2 + (button.AbsoluteSize.Y - my)^2),
+            math.sqrt((button.AbsoluteSize.X - mx)^2 + (button.AbsoluteSize.Y - my)^2)
+        )
+        local ripple = create("Frame", {
+            BackgroundColor3 = theme.AccentGlow or theme.Accent,
+            BackgroundTransparency = 0.7,
+            Position = UDim2.new(0, mx, 0, my),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Size = UDim2.new(0, 0, 0, 0),
+            Parent = button,
+        })
+        corner(ripple, 999)
+        local sz = maxDist * 2
+        tween(ripple, 0.4, { Size = UDim2.new(0, sz, 0, sz), BackgroundTransparency = 1 })
+        task.delay(0.45, function() ripple:Destroy() end)
+    end)
 end
 
 -- ============================================================
@@ -383,7 +606,7 @@ local function ensureNotifContainer()
         BackgroundTransparency = 1,
         AnchorPoint = Vector2.new(1, 1),
         Position = UDim2.new(1, -16, 1, -16),
-        Size = UDim2.new(0, 320, 1, -32),
+        Size = UDim2.new(0, 330, 1, -32),
         Parent = gui,
     })
     create("UIListLayout", {
@@ -401,15 +624,14 @@ function Scriptora:Notify(opts)
     local title    = opts.Title or "Notification"
     local content  = opts.Content or ""
     local duration = opts.Duration or 4
-    local notifType = string.lower(opts.Type or "info")  -- info|success|warning|error
+    local notifType = string.lower(opts.Type or "info")
     local theme = self.CurrentTheme or Scriptora.Themes.Amethyst
 
     local typeColor = theme.Info
-    local icon = "i"
+    local icon = "ℹ"
     if notifType == "success" then typeColor, icon = theme.Success, "✓"
-    elseif notifType == "warning" then typeColor, icon = theme.Warning, "!"
-    elseif notifType == "error" then typeColor, icon = theme.Error, "×"
-    elseif notifType == "info" then typeColor, icon = theme.Info, "i"
+    elseif notifType == "warning" then typeColor, icon = theme.Warning, "⚠"
+    elseif notifType == "error" then typeColor, icon = theme.Error, "✕"
     end
 
     local container = ensureNotifContainer()
@@ -422,11 +644,11 @@ function Scriptora:Notify(opts)
         BackgroundTransparency = 1,
         Parent = container,
     })
-    corner(notif, 8)
-    stroke(notif, theme.Border, 1)
-    shadow(notif, 0.6)
+    corner(notif, 10)
+    stroke(notif, theme.Border, 1, 0.3)
+    shadow(notif, 0.55)
 
-    -- side accent stripe
+    -- accent stripe
     local stripe = create("Frame", {
         BackgroundColor3 = typeColor,
         Size = UDim2.new(0, 3, 1, 0),
@@ -434,36 +656,45 @@ function Scriptora:Notify(opts)
         BackgroundTransparency = 1,
         Parent = notif,
     })
-    create("UICorner", { CornerRadius = UDim.new(0, 2), Parent = stripe })
+    corner(stripe, 2)
 
+    -- inner padded area
     local pad = create("Frame", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 10, 0, 0),
-        Size = UDim2.new(1, -10, 0, 0),
+        Position = UDim2.new(0, 12, 0, 0),
+        Size = UDim2.new(1, -12, 0, 0),
         AutomaticSize = Enum.AutomaticSize.Y,
         Parent = notif,
     })
     padding(pad, 12, 8, 12, 12)
 
-    local iconLabel = create("TextLabel", {
+    -- icon badge
+    local iconBg = create("Frame", {
         BackgroundColor3 = typeColor,
-        Size = UDim2.new(0, 18, 0, 18),
+        BackgroundTransparency = 0.85,
+        Size = UDim2.new(0, 22, 0, 22),
         Position = UDim2.new(0, 0, 0, 0),
-        Font = Enum.Font.GothamBold,
-        TextSize = 12,
-        TextColor3 = theme.Text,
-        Text = icon,
-        BackgroundTransparency = 1,
         Parent = pad,
     })
-    corner(iconLabel, 9)
+    corner(iconBg, 6)
+
+    local iconLabel = create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Font = Enum.Font.GothamBold,
+        TextSize = 11,
+        TextColor3 = typeColor,
+        Text = icon,
+        TextTransparency = 1,
+        Parent = iconBg,
+    })
 
     local titleLabel = create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 24, 0, 0),
-        Size = UDim2.new(1, -24, 0, 18),
+        Position = UDim2.new(0, 28, 0, 1),
+        Size = UDim2.new(1, -28, 0, 18),
         Font = Enum.Font.GothamBold,
-        TextSize = 14,
+        TextSize = 13,
         TextColor3 = theme.Text,
         TextTransparency = 1,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -473,11 +704,11 @@ function Scriptora:Notify(opts)
 
     local contentLabel = create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 24, 0, 22),
-        Size = UDim2.new(1, -24, 0, 0),
+        Position = UDim2.new(0, 28, 0, 22),
+        Size = UDim2.new(1, -28, 0, 0),
         AutomaticSize = Enum.AutomaticSize.Y,
         Font = Enum.Font.Gotham,
-        TextSize = 12,
+        TextSize = 11,
         TextColor3 = theme.SubText,
         TextTransparency = 1,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -486,35 +717,416 @@ function Scriptora:Notify(opts)
         Parent = pad,
     })
 
+    -- progress bar
     local bar = create("Frame", {
         BackgroundColor3 = typeColor,
+        BackgroundTransparency = 0.6,
         Size = UDim2.new(1, 0, 0, 2),
         Position = UDim2.new(0, 0, 1, -2),
         BorderSizePixel = 0,
-        BackgroundTransparency = 1,
         Parent = notif,
     })
 
-    -- slide in
-    notif.Position = UDim2.new(1, 50, 0, 0)
-    tween(notif, 0.3, { BackgroundTransparency = 0, Position = UDim2.new(0, 0, 0, 0) }, Enum.EasingStyle.Back)
+    -- animate in
+    notif.Position = UDim2.new(1, 60, 0, 0)
+    tween(notif, 0.35, { BackgroundTransparency = 0, Position = UDim2.new(0, 0, 0, 0) }, Enum.EasingStyle.Back)
     tween(stripe, 0.3, { BackgroundTransparency = 0 })
-    tween(iconLabel, 0.3, { BackgroundTransparency = 0 })
+    tween(iconLabel, 0.3, { TextTransparency = 0 })
     tween(titleLabel, 0.3, { TextTransparency = 0 })
     tween(contentLabel, 0.3, { TextTransparency = 0 })
-    tween(bar, 0.3, { BackgroundTransparency = 0 })
+    tween(bar, 0.3, { BackgroundTransparency = 0.4 })
 
     task.spawn(function()
         tween(bar, duration, { Size = UDim2.new(0, 0, 0, 2) }, Enum.EasingStyle.Linear)
         task.wait(duration)
-        tween(notif, 0.25, { BackgroundTransparency = 1, Position = UDim2.new(1, 50, 0, 0) })
+        tween(notif, 0.3, { BackgroundTransparency = 1, Position = UDim2.new(1, 60, 0, 0) })
         tween(stripe, 0.2, { BackgroundTransparency = 1 })
-        tween(iconLabel, 0.2, { BackgroundTransparency = 1, TextTransparency = 1 })
+        tween(iconLabel, 0.2, { TextTransparency = 1 })
         tween(titleLabel, 0.2, { TextTransparency = 1 })
         tween(contentLabel, 0.2, { TextTransparency = 1 })
-        task.wait(0.3)
+        task.wait(0.35)
         notif:Destroy()
     end)
+end
+
+-- ============================================================
+-- // KEY SYSTEM
+-- ============================================================
+function Scriptora:CreateKeySystem(opts)
+    opts = opts or {}
+    local name        = opts.Name or "Scriptora"
+    local method      = opts.Method or "Hardcoded" -- "Hardcoded" | "URL" | "Custom"
+    local keys        = opts.Keys or {}
+    local url         = opts.URL or ""
+    local validateFunc = opts.ValidateFunc -- function(key) -> boolean, message
+    local saveKey     = opts.SaveKey ~= false
+    local keyFolder   = opts.KeyFolder or "Scriptora"
+    local keyFile     = opts.KeyFile or "key.txt"
+    local onValidated = opts.OnValidated or function() end
+    local onFailed    = opts.OnFailed or function() end
+    local themeName   = opts.Theme or "Amethyst"
+    local theme       = Scriptora.Themes[themeName] or Scriptora.Themes.Amethyst
+    local getKeyLink  = opts.GetKeyLink or ""
+    local discord     = opts.Discord or ""
+    local maxAttempts = opts.MaxAttempts or 5
+
+    local attempts = 0
+    local savedKey = ""
+
+    -- Try to load saved key
+    if saveKey then
+        pcall(function()
+            if not Executor.isfolder(keyFolder) then Executor.makefolder(keyFolder) end
+            local path = keyFolder .. "/" .. keyFile
+            if Executor.isfile(path) then
+                savedKey = Executor.readfile(path)
+            end
+        end)
+    end
+
+    -- Validation logic
+    local function validate(key)
+        if method == "Hardcoded" then
+            for _, k in ipairs(keys) do
+                if k == key then return true, "Key validated!" end
+            end
+            return false, "Invalid key."
+        elseif method == "URL" then
+            local ok, result = pcall(function()
+                local resp = Executor.request({
+                    Url = url .. "?key=" .. HttpService:UrlEncode(key),
+                    Method = "GET",
+                })
+                if resp.StatusCode == 200 then
+                    local body = resp.Body
+                    -- support JSON responses
+                    local parsed = pcall(function() return HttpService:JSONDecode(body) end)
+                    if parsed then
+                        local data = HttpService:JSONDecode(body)
+                        if data.success or data.valid or data.status == "success" or data.message == "valid" then
+                            return true
+                        end
+                    end
+                    -- raw text check
+                    body = body:lower():gsub("%s+", "")
+                    if body == "true" or body == "valid" or body == "success" or body == "1" then
+                        return true
+                    end
+                end
+                return false
+            end)
+            if ok and result then
+                return true, "Key validated!"
+            end
+            return false, "Invalid key or server error."
+        elseif method == "Custom" and validateFunc then
+            return validateFunc(key)
+        end
+        return false, "Unknown validation method."
+    end
+
+    -- Check saved key first
+    if savedKey ~= "" then
+        local valid, _ = validate(savedKey)
+        if valid then
+            task.spawn(onValidated)
+            return
+        end
+    end
+
+    -- Build the key UI
+    local gui = create("ScreenGui", {
+        Name = "Scriptora_KeySystem",
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        IgnoreGuiInset = true,
+        DisplayOrder = 200,
+    })
+    Executor.protectgui(gui)
+
+    -- dark overlay
+    local overlay = create("Frame", {
+        BackgroundColor3 = Color3.new(0, 0, 0),
+        BackgroundTransparency = 0.3,
+        Size = UDim2.new(1, 0, 1, 0),
+        Parent = gui,
+    })
+
+    -- main card
+    local card = create("Frame", {
+        BackgroundColor3 = theme.Background,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = gui,
+    })
+    corner(card, 12)
+    stroke(card, theme.Border, 1)
+    shadow(card, 0.35)
+
+    tween(card, 0.4, { Size = UDim2.new(0, 360, 0, 300), BackgroundTransparency = 0 }, Enum.EasingStyle.Back)
+
+    -- top accent bar
+    local accentTop = create("Frame", {
+        BackgroundColor3 = theme.Accent,
+        Size = UDim2.new(1, 0, 0, 3),
+        BorderSizePixel = 0,
+        Parent = card,
+    })
+    gradient(accentTop, ColorSequence.new({
+        ColorSequenceKeypoint.new(0, theme.AccentDim),
+        ColorSequenceKeypoint.new(0.5, theme.Accent),
+        ColorSequenceKeypoint.new(1, theme.AccentDim),
+    }), 0)
+    corner(accentTop, 12)
+
+    -- logo area
+    local logoBg = create("Frame", {
+        BackgroundColor3 = theme.Accent,
+        BackgroundTransparency = 0.88,
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position = UDim2.new(0.5, 0, 0, 24),
+        Size = UDim2.new(0, 52, 0, 52),
+        Parent = card,
+    })
+    corner(logoBg, 14)
+
+    create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Font = Enum.Font.GothamBold,
+        TextSize = 22,
+        TextColor3 = theme.Accent,
+        Text = "🔑",
+        Parent = logoBg,
+    })
+
+    create("TextLabel", {
+        BackgroundTransparency = 1,
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position = UDim2.new(0.5, 0, 0, 84),
+        Size = UDim2.new(1, -40, 0, 22),
+        Font = Enum.Font.GothamBold,
+        TextSize = 17,
+        TextColor3 = theme.Text,
+        Text = name,
+        Parent = card,
+    })
+
+    create("TextLabel", {
+        BackgroundTransparency = 1,
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position = UDim2.new(0.5, 0, 0, 108),
+        Size = UDim2.new(1, -40, 0, 16),
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = theme.SubText,
+        Text = "Enter your license key to continue",
+        Parent = card,
+    })
+
+    -- key input
+    local inputBg = create("Frame", {
+        BackgroundColor3 = theme.Element,
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position = UDim2.new(0.5, 0, 0, 140),
+        Size = UDim2.new(1, -48, 0, 38),
+        BorderSizePixel = 0,
+        Parent = card,
+    })
+    corner(inputBg, 8)
+    local inputStroke = stroke(inputBg, theme.Border, 1, 0.3)
+
+    local keyInput = create("TextBox", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -16, 1, 0),
+        Position = UDim2.new(0, 8, 0, 0),
+        Font = Enum.Font.GothamMedium,
+        TextSize = 13,
+        TextColor3 = theme.Text,
+        PlaceholderColor3 = theme.Disabled,
+        PlaceholderText = "XXXX-XXXX-XXXX-XXXX",
+        Text = "",
+        ClearTextOnFocus = false,
+        Parent = inputBg,
+    })
+
+    keyInput.Focused:Connect(function()
+        tween(inputStroke, 0.2, { Color = theme.Accent, Transparency = 0 })
+        tween(inputBg, 0.2, { BackgroundColor3 = theme.Tertiary })
+    end)
+    keyInput.FocusLost:Connect(function()
+        tween(inputStroke, 0.2, { Color = theme.Border, Transparency = 0.3 })
+        tween(inputBg, 0.2, { BackgroundColor3 = theme.Element })
+    end)
+
+    -- status label
+    local statusLabel = create("TextLabel", {
+        BackgroundTransparency = 1,
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position = UDim2.new(0.5, 0, 0, 184),
+        Size = UDim2.new(1, -48, 0, 14),
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = theme.SubText,
+        Text = "",
+        Parent = card,
+    })
+
+    -- validate button
+    local validateBtn = create("TextButton", {
+        BackgroundColor3 = theme.Accent,
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position = UDim2.new(0.5, 0, 0, 206),
+        Size = UDim2.new(1, -48, 0, 36),
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
+        TextColor3 = theme.Text,
+        Text = "Validate Key",
+        AutoButtonColor = false,
+        Parent = card,
+    })
+    corner(validateBtn, 8)
+    gradient(validateBtn, ColorSequence.new({
+        ColorSequenceKeypoint.new(0, theme.Accent),
+        ColorSequenceKeypoint.new(1, theme.AccentDim),
+    }), 45)
+    addRipple(validateBtn, theme)
+
+    validateBtn.MouseEnter:Connect(function()
+        tween(validateBtn, 0.2, { BackgroundColor3 = theme.AccentHover })
+    end)
+    validateBtn.MouseLeave:Connect(function()
+        tween(validateBtn, 0.2, { BackgroundColor3 = theme.Accent })
+    end)
+
+    -- bottom links row
+    local linksRow = create("Frame", {
+        BackgroundTransparency = 1,
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position = UDim2.new(0.5, 0, 0, 254),
+        Size = UDim2.new(1, -48, 0, 22),
+        Parent = card,
+    })
+    listLayout(linksRow, 12, Enum.FillDirection.Horizontal, Enum.HorizontalAlignment.Center)
+
+    if getKeyLink ~= "" then
+        local getBtn = create("TextButton", {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(0, 70, 1, 0),
+            Font = Enum.Font.GothamMedium,
+            TextSize = 11,
+            TextColor3 = theme.Accent,
+            Text = "Get Key",
+            AutoButtonColor = false,
+            Parent = linksRow,
+        })
+        getBtn.MouseButton1Click:Connect(function()
+            Executor.setclipboard(getKeyLink)
+            statusLabel.Text = "Link copied to clipboard!"
+            statusLabel.TextColor3 = theme.Info
+        end)
+    end
+
+    if discord ~= "" then
+        local dcBtn = create("TextButton", {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(0, 70, 1, 0),
+            Font = Enum.Font.GothamMedium,
+            TextSize = 11,
+            TextColor3 = theme.Accent,
+            Text = "Discord",
+            AutoButtonColor = false,
+            Parent = linksRow,
+        })
+        dcBtn.MouseButton1Click:Connect(function()
+            Executor.setclipboard(discord)
+            statusLabel.Text = "Discord link copied!"
+            statusLabel.TextColor3 = theme.Info
+        end)
+    end
+
+    local pasteBtn = create("TextButton", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 70, 1, 0),
+        Font = Enum.Font.GothamMedium,
+        TextSize = 11,
+        TextColor3 = theme.SubText,
+        Text = "Paste",
+        AutoButtonColor = false,
+        Parent = linksRow,
+    })
+    -- (paste from clipboard isn't reliable in all executors, but text can be pasted natively)
+
+    -- validation logic
+    validateBtn.MouseButton1Click:Connect(function()
+        local key = keyInput.Text:gsub("^%s+", ""):gsub("%s+$", "")
+        if key == "" then
+            statusLabel.Text = "Please enter a key."
+            statusLabel.TextColor3 = theme.Warning
+            return
+        end
+
+        attempts = attempts + 1
+        if attempts > maxAttempts then
+            statusLabel.Text = "Too many attempts. Restart the script."
+            statusLabel.TextColor3 = theme.Error
+            validateBtn.Active = false
+            validateBtn.BackgroundColor3 = theme.Disabled
+            return
+        end
+
+        statusLabel.Text = "Validating…"
+        statusLabel.TextColor3 = theme.SubText
+        validateBtn.Text = "Validating…"
+        validateBtn.Active = false
+
+        task.spawn(function()
+            local valid, msg = validate(key)
+            if valid then
+                statusLabel.Text = msg or "Key validated!"
+                statusLabel.TextColor3 = theme.Success
+                validateBtn.Text = "✓ Success"
+                validateBtn.BackgroundColor3 = theme.Success
+
+                -- save key
+                if saveKey then
+                    pcall(function()
+                        if not Executor.isfolder(keyFolder) then Executor.makefolder(keyFolder) end
+                        Executor.writefile(keyFolder .. "/" .. keyFile, key)
+                    end)
+                end
+
+                task.wait(0.6)
+                tween(card, 0.3, { Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1 })
+                tween(overlay, 0.3, { BackgroundTransparency = 1 })
+                task.wait(0.35)
+                gui:Destroy()
+                task.spawn(onValidated)
+            else
+                statusLabel.Text = msg or "Invalid key."
+                statusLabel.TextColor3 = theme.Error
+                validateBtn.Text = "Validate Key"
+                validateBtn.Active = true
+                validateBtn.BackgroundColor3 = theme.Accent
+
+                -- shake the input
+                local orig = inputBg.Position
+                for i = 1, 3 do
+                    tween(inputBg, 0.04, { Position = orig + UDim2.new(0, 6, 0, 0) })
+                    task.wait(0.04)
+                    tween(inputBg, 0.04, { Position = orig + UDim2.new(0, -6, 0, 0) })
+                    task.wait(0.04)
+                end
+                tween(inputBg, 0.04, { Position = orig })
+
+                task.spawn(onFailed, key)
+            end
+        end)
+    end)
+
+    return gui
 end
 
 -- ============================================================
@@ -524,16 +1136,16 @@ function Scriptora:CreateWindow(opts)
     opts = opts or {}
     local W = setmetatable({}, { __index = Scriptora })
 
-    local windowName = opts.Name or "Scriptora"
-    local subTitle   = opts.SubTitle or ""
-    local themeName  = opts.Theme or "Amethyst"
-    local theme      = Scriptora.Themes[themeName] or Scriptora.Themes.Amethyst
-    local toggleKey  = opts.ToggleKey or Enum.KeyCode.RightShift
-    local size       = opts.Size or UDim2.new(0, 600, 0, 420)
-    local minSize    = opts.MinSize or Vector2.new(440, 320)
+    local windowName   = opts.Name or "Scriptora"
+    local subTitle     = opts.SubTitle or ""
+    local themeName    = opts.Theme or "Amethyst"
+    local theme        = Scriptora.Themes[themeName] or Scriptora.Themes.Amethyst
+    local toggleKey    = opts.ToggleKey or Enum.KeyCode.RightShift
+    local size         = opts.Size or UDim2.new(0, 620, 0, 440)
+    local minSize      = opts.MinSize or Vector2.new(440, 320)
     local configFolder = opts.ConfigFolder or "Scriptora"
     local configName   = opts.ConfigName or "default"
-    local showWatermark = opts.Watermark ~= false  -- true unless explicitly disabled
+    local showWatermark = opts.Watermark ~= false
 
     W.CurrentTheme     = theme
     W.CurrentThemeName = themeName
@@ -542,11 +1154,12 @@ function Scriptora:CreateWindow(opts)
     W.Tabs             = {}
     W.AllElements      = {}
     W.ThemedItems      = {}
+    W.Visible          = true
+
     function W:themed(inst, map)
         table.insert(W.ThemedItems, { Inst = inst, Map = map })
         return inst
     end
-    W.Visible          = true
 
     -- // Master ScreenGui
     local gui = create("ScreenGui", {
@@ -562,21 +1175,33 @@ function Scriptora:CreateWindow(opts)
     -- // Loading splash
     local splash = create("Frame", {
         BackgroundColor3 = theme.Background,
-        Size = UDim2.new(0, 240, 0, 80),
+        Size = UDim2.new(0, 260, 0, 90),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundTransparency = 1,
         Parent = gui,
     })
     corner(splash, 12)
-    stroke(splash, theme.Border, 1)
+    stroke(splash, theme.Border, 1, 0.3)
+    shadow(splash, 0.45)
+
+    -- accent top line on splash
+    local splashAccent = create("Frame", {
+        BackgroundColor3 = theme.Accent,
+        Size = UDim2.new(1, 0, 0, 2),
+        BorderSizePixel = 0,
+        BackgroundTransparency = 1,
+        Parent = splash,
+    })
+    gradient(splashAccent, ColorSequence.new(theme.AccentDim, theme.Accent), 0)
+    corner(splashAccent, 12)
 
     local splashTitle = create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 14),
+        Position = UDim2.new(0, 0, 0, 16),
         Size = UDim2.new(1, 0, 0, 22),
         Font = Enum.Font.GothamBold,
-        TextSize = 18,
+        TextSize = 17,
         TextColor3 = theme.Text,
         Text = windowName,
         TextTransparency = 1,
@@ -584,8 +1209,8 @@ function Scriptora:CreateWindow(opts)
     })
     local splashSub = create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 38),
-        Size = UDim2.new(1, 0, 0, 16),
+        Position = UDim2.new(0, 0, 0, 42),
+        Size = UDim2.new(1, 0, 0, 14),
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = theme.SubText,
@@ -595,8 +1220,8 @@ function Scriptora:CreateWindow(opts)
     })
     local splashBar = create("Frame", {
         BackgroundColor3 = theme.Element,
-        Position = UDim2.new(0.5, -80, 1, -16),
-        Size = UDim2.new(0, 160, 0, 3),
+        Position = UDim2.new(0.5, -90, 1, -18),
+        Size = UDim2.new(0, 180, 0, 3),
         BorderSizePixel = 0,
         BackgroundTransparency = 1,
         Parent = splash,
@@ -609,14 +1234,16 @@ function Scriptora:CreateWindow(opts)
         Parent = splashBar,
     })
     corner(splashFill, 2)
+    gradient(splashFill, ColorSequence.new(theme.AccentDim, theme.Accent), 0)
 
     tween(splash, 0.3, { BackgroundTransparency = 0 })
+    tween(splashAccent, 0.3, { BackgroundTransparency = 0 })
     tween(splashTitle, 0.3, { TextTransparency = 0 })
     tween(splashSub, 0.3, { TextTransparency = 0 })
     tween(splashBar, 0.3, { BackgroundTransparency = 0 })
-    tween(splashFill, 0.6, { Size = UDim2.new(1, 0, 1, 0) })
+    tween(splashFill, 0.65, { Size = UDim2.new(1, 0, 1, 0) })
 
-    -- // Main Frame (hidden until splash done)
+    -- // Main Frame
     local main = create("Frame", {
         Name = "Main",
         BackgroundColor3 = theme.Background,
@@ -629,26 +1256,34 @@ function Scriptora:CreateWindow(opts)
     })
     corner(main, 10)
     W:themed(main, { BackgroundColor3 = "Background" })
-    W:themed(stroke(main, theme.Border, 1), { Color = "Border" })
+    W:themed(stroke(main, theme.Border, 1, 0.2), { Color = "Border" })
+    shadow(main, 0.4)
     W.Main = main
 
-    -- ------------------ TOP BAR ------------------
+    -- ── TOP BAR ──
     local topBar = create("Frame", {
         Name = "TopBar",
         BackgroundColor3 = theme.Secondary,
-        Size = UDim2.new(1, 0, 0, 40),
+        Size = UDim2.new(1, 0, 0, 42),
         BorderSizePixel = 0,
         Parent = main,
     })
     W:themed(topBar, { BackgroundColor3 = "Secondary" })
-    -- gradient overlay for flair
-    local tbg = gradient(topBar, ColorSequence.new({
-        ColorSequenceKeypoint.new(0, theme.Secondary),
-        ColorSequenceKeypoint.new(1, theme.Tertiary),
-    }), 0)
-    W:themed(tbg, { Color = function(t) return ColorSequence.new(t.Secondary, t.Tertiary) end })
 
-    -- Mask the bottom-rounded corners of the topbar
+    -- top accent line
+    local topAccent = create("Frame", {
+        BackgroundColor3 = theme.Accent,
+        Size = UDim2.new(1, 0, 0, 2),
+        BorderSizePixel = 0,
+        Parent = topBar,
+    })
+    gradient(topAccent, ColorSequence.new({
+        ColorSequenceKeypoint.new(0, theme.AccentDim),
+        ColorSequenceKeypoint.new(0.5, theme.Accent),
+        ColorSequenceKeypoint.new(1, theme.AccentDim),
+    }), 0)
+
+    -- bottom fill to mask corners
     W:themed(create("Frame", {
         BackgroundColor3 = theme.Secondary,
         BorderSizePixel = 0,
@@ -657,19 +1292,19 @@ function Scriptora:CreateWindow(opts)
         Parent = topBar,
     }), { BackgroundColor3 = "Secondary" })
 
-    -- // Logo / icon
+    -- logo/icon
     local pfpUrl = fetchImage(opts.CustomPFP)
     local logoClass = pfpUrl ~= "" and "ImageLabel" or "Frame"
     local logo = create(logoClass, {
         BackgroundColor3 = theme.Accent,
-        Position = UDim2.new(0, 12, 0.5, -12),
-        Size = UDim2.new(0, 24, 0, 24),
+        BackgroundTransparency = 0.85,
+        Position = UDim2.new(0, 12, 0.5, -11),
+        Size = UDim2.new(0, 26, 0, 26),
         BorderSizePixel = 0,
         Parent = topBar,
     })
     if pfpUrl ~= "" and logoClass == "ImageLabel" then logo.Image = pfpUrl end
-    corner(logo, 6)
-    W:themed(logo, { BackgroundColor3 = "Accent" })
+    corner(logo, 7)
 
     if pfpUrl == "" then
         create("TextLabel", {
@@ -677,7 +1312,7 @@ function Scriptora:CreateWindow(opts)
             Size = UDim2.new(1, 0, 1, 0),
             Font = Enum.Font.GothamBold,
             TextSize = 14,
-            TextColor3 = theme.Text,
+            TextColor3 = theme.Accent,
             Text = string.sub(windowName, 1, 1):upper(),
             Parent = logo,
         })
@@ -685,8 +1320,8 @@ function Scriptora:CreateWindow(opts)
 
     local titleLabel = create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 40, 0, 0),
-        Size = UDim2.new(0, 200, 1, 0),
+        Position = UDim2.new(0, 44, 0, 2),
+        Size = UDim2.new(0, 200, 1, -2),
         Font = Enum.Font.GothamBold,
         TextSize = 14,
         TextColor3 = theme.Text,
@@ -698,27 +1333,26 @@ function Scriptora:CreateWindow(opts)
 
     if subTitle ~= "" then
         local titleSize = TextService:GetTextSize(windowName, 14, Enum.Font.GothamBold, Vector2.new(1000, 100))
-        local subLabel = create("TextLabel", {
+        W:themed(create("TextLabel", {
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 40 + titleSize.X + 8, 0, 0),
-            Size = UDim2.new(0, 200, 1, 0),
+            Position = UDim2.new(0, 44 + titleSize.X + 8, 0, 2),
+            Size = UDim2.new(0, 200, 1, -2),
             Font = Enum.Font.Gotham,
-            TextSize = 12,
+            TextSize = 11,
             TextColor3 = theme.SubText,
             TextXAlignment = Enum.TextXAlignment.Left,
             Text = subTitle,
             Parent = topBar,
-        })
-        W:themed(subLabel, { TextColor3 = "SubText" })
+        }), { TextColor3 = "SubText" })
     end
 
-    -- // Close + Minimize buttons
+    -- Close + Minimize
     local function topBtn(text, hoverColor, x)
         local b = create("TextButton", {
             BackgroundColor3 = theme.Element,
             BackgroundTransparency = 1,
             Position = UDim2.new(1, x, 0.5, -10),
-            Size = UDim2.new(0, 20, 0, 20),
+            Size = UDim2.new(0, 22, 0, 22),
             Font = Enum.Font.GothamBold,
             TextSize = 14,
             TextColor3 = theme.SubText,
@@ -737,42 +1371,53 @@ function Scriptora:CreateWindow(opts)
     end
 
     local closeBtn = topBtn("×", theme.Error, -28)
-    local minBtn   = topBtn("–", theme.Accent, -52)
+    local minBtn   = topBtn("–", theme.Accent, -54)
 
     closeBtn.MouseButton1Click:Connect(function() W:Destroy() end)
     minBtn.MouseButton1Click:Connect(function() W:Toggle() end)
 
     makeDraggable(main, topBar)
 
-    -- ------------------ SIDEBAR ------------------
+    -- ── SIDEBAR ──
     local sidebar = create("Frame", {
         Name = "Sidebar",
         BackgroundColor3 = theme.Secondary,
-        Position = UDim2.new(0, 0, 0, 40),
-        Size = UDim2.new(0, 150, 1, -76),
+        Position = UDim2.new(0, 0, 0, 42),
+        Size = UDim2.new(0, 155, 1, -78),
         BorderSizePixel = 0,
         Parent = main,
     })
     W:themed(sidebar, { BackgroundColor3 = "Secondary" })
 
-    -- Search bar
+    -- divider line between sidebar and content
+    W:themed(create("Frame", {
+        BackgroundColor3 = theme.Border,
+        BackgroundTransparency = 0.5,
+        Position = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(0, 1, 1, 0),
+        BorderSizePixel = 0,
+        Parent = sidebar,
+    }), { BackgroundColor3 = "Border" })
+
+    -- search bar
     local searchHolder = create("Frame", {
         BackgroundColor3 = theme.Tertiary,
         Position = UDim2.new(0, 8, 0, 8),
-        Size = UDim2.new(1, -16, 0, 28),
+        Size = UDim2.new(1, -16, 0, 30),
         BorderSizePixel = 0,
         Parent = sidebar,
     })
     W:themed(searchHolder, { BackgroundColor3 = "Tertiary" })
-    W:themed(stroke(searchHolder, theme.Border, 1, 0.5), { Color = "Border" })
+    corner(searchHolder, 6)
+    local searchStroke = stroke(searchHolder, theme.Border, 1, 0.5)
 
-    local searchIcon = create("TextLabel", {
+    create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 8, 0, 0),
+        Position = UDim2.new(0, 9, 0, 0),
         Size = UDim2.new(0, 14, 1, 0),
         Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = theme.SubText,
+        TextSize = 12,
+        TextColor3 = theme.Disabled,
         Text = "⌕",
         Parent = searchHolder,
     })
@@ -784,19 +1429,25 @@ function Scriptora:CreateWindow(opts)
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextColor3 = theme.Text,
-        PlaceholderColor3 = theme.SubText,
+        PlaceholderColor3 = theme.Disabled,
         PlaceholderText = "Search…",
-        TextXAlignment = Enum.TextXAlignment.Left,
         Text = "",
         ClearTextOnFocus = false,
         Parent = searchHolder,
     })
-    W:themed(searchBox, { TextColor3 = "Text", PlaceholderColor3 = "SubText" })
+    W:themed(searchBox, { TextColor3 = "Text", PlaceholderColor3 = "Disabled" })
+
+    searchBox.Focused:Connect(function()
+        tween(searchStroke, 0.15, { Color = theme.Accent, Transparency = 0 })
+    end)
+    searchBox.FocusLost:Connect(function()
+        tween(searchStroke, 0.15, { Color = theme.Border, Transparency = 0.5 })
+    end)
 
     local tabHolder = create("ScrollingFrame", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 8, 0, 44),
-        Size = UDim2.new(1, -16, 1, -52),
+        Position = UDim2.new(0, 8, 0, 46),
+        Size = UDim2.new(1, -16, 1, -54),
         ScrollBarThickness = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         AutomaticCanvasSize = Enum.AutomaticSize.Y,
@@ -804,63 +1455,74 @@ function Scriptora:CreateWindow(opts)
         BorderSizePixel = 0,
         Parent = sidebar,
     })
-    listLayout(tabHolder, 4)
+    listLayout(tabHolder, 3)
 
-    -- ------------------ BOTTOM PLAYER BAR ------------------
+    -- ── BOTTOM PLAYER BAR ──
     local playerBar = create("Frame", {
         BackgroundColor3 = theme.Secondary,
         Position = UDim2.new(0, 0, 1, -36),
-        Size = UDim2.new(0, 150, 0, 36),
+        Size = UDim2.new(0, 155, 0, 36),
         BorderSizePixel = 0,
         Parent = main,
     })
     W:themed(playerBar, { BackgroundColor3 = "Secondary" })
 
+    -- divider above player bar
+    W:themed(create("Frame", {
+        BackgroundColor3 = theme.Border,
+        BackgroundTransparency = 0.5,
+        Position = UDim2.new(0, 8, 0, 0),
+        Size = UDim2.new(1, -16, 0, 1),
+        BorderSizePixel = 0,
+        Parent = playerBar,
+    }), { BackgroundColor3 = "Border" })
+
     local avatar = create("ImageLabel", {
         BackgroundColor3 = theme.Element,
-        Position = UDim2.new(0, 8, 0.5, -13),
-        Size = UDim2.new(0, 26, 0, 26),
+        Position = UDim2.new(0, 8, 0.5, -12),
+        Size = UDim2.new(0, 24, 0, 24),
         Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LP.UserId .. "&width=150&height=150&format=png",
         Parent = playerBar,
     })
-    corner(avatar, 13)
-    stroke(avatar, theme.Accent, 1.5)
-    W:themed(avatar, { BackgroundColor3 = "Element" })
+    corner(avatar, 12)
+    stroke(avatar, theme.Accent, 1.5, 0.3)
 
     W:themed(create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 42, 0, 4),
-        Size = UDim2.new(1, -46, 0, 14),
+        Position = UDim2.new(0, 40, 0, 5),
+        Size = UDim2.new(1, -44, 0, 13),
         Font = Enum.Font.GothamBold,
         TextSize = 11,
         TextColor3 = theme.Text,
         TextXAlignment = Enum.TextXAlignment.Left,
         Text = LP.DisplayName,
+        TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = playerBar,
     }), { TextColor3 = "Text" })
 
     W:themed(create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 42, 0, 18),
-        Size = UDim2.new(1, -46, 0, 12),
+        Position = UDim2.new(0, 40, 0, 18),
+        Size = UDim2.new(1, -44, 0, 12),
         Font = Enum.Font.Gotham,
-        TextSize = 10,
+        TextSize = 9,
         TextColor3 = theme.SubText,
         TextXAlignment = Enum.TextXAlignment.Left,
         Text = "@" .. LP.Name,
+        TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = playerBar,
     }), { TextColor3 = "SubText" })
 
-    -- ------------------ CONTENT AREA ------------------
+    -- ── CONTENT AREA ──
     local content = create("Frame", {
         Name = "Content",
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 150, 0, 40),
-        Size = UDim2.new(1, -150, 1, -40),
+        Position = UDim2.new(0, 155, 0, 42),
+        Size = UDim2.new(1, -155, 1, -42),
         Parent = main,
     })
 
-    -- ------------------ RESIZE HANDLE ------------------
+    -- ── RESIZE HANDLE ──
     local resizeHandle = create("TextButton", {
         BackgroundTransparency = 1,
         Position = UDim2.new(1, -16, 1, -16),
@@ -872,17 +1534,16 @@ function Scriptora:CreateWindow(opts)
     })
     create("TextLabel", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1,0,1,0),
+        Size = UDim2.new(1, 0, 1, 0),
         Font = Enum.Font.GothamBold,
-        TextSize = 11,
-        TextColor3 = theme.SubText,
+        TextSize = 10,
+        TextColor3 = theme.Disabled,
         Text = "⇲",
         Parent = resizeHandle,
     })
 
     do
-        local resizing = false
-        local startMouse, startSize
+        local resizing, startMouse, startSize = false, nil, nil
         resizeHandle.InputBegan:Connect(function(i)
             if i.UserInputType == Enum.UserInputType.MouseButton1
             or i.UserInputType == Enum.UserInputType.Touch then
@@ -901,36 +1562,54 @@ function Scriptora:CreateWindow(opts)
             if resizing and (i.UserInputType == Enum.UserInputType.MouseMovement
             or i.UserInputType == Enum.UserInputType.Touch) then
                 local m = UserInputService:GetMouseLocation()
-                local dx = m.X - startMouse.X
-                local dy = m.Y - startMouse.Y
-                local nx = math.max(minSize.X, startSize.X + dx)
-                local ny = math.max(minSize.Y, startSize.Y + dy)
+                local nx = math.max(minSize.X, startSize.X + m.X - startMouse.X)
+                local ny = math.max(minSize.Y, startSize.Y + m.Y - startMouse.Y)
                 main.Size = UDim2.new(0, nx, 0, ny)
                 size = main.Size
             end
         end)
     end
 
-    -- ------------------ WATERMARK ------------------
-    local watermark
+    -- ── WATERMARK ──
     if showWatermark then
-        watermark = create("Frame", {
-            BackgroundColor3 = theme.Secondary,
+        local watermark = create("Frame", {
+            BackgroundColor3 = theme.Background,
             Position = UDim2.new(0, 12, 0, 12),
-            Size = UDim2.new(0, 220, 0, 28),
+            Size = UDim2.new(0, 230, 0, 28),
             BorderSizePixel = 0,
             Parent = gui,
         })
         corner(watermark, 6)
-        stroke(watermark, theme.Border, 1)
-        shadow(watermark, 0.7)
+        stroke(watermark, theme.Border, 1, 0.3)
+        shadow(watermark, 0.65)
+
+        -- tiny accent dot
+        create("Frame", {
+            BackgroundColor3 = theme.Accent,
+            Position = UDim2.new(0, 8, 0.5, -3),
+            Size = UDim2.new(0, 6, 0, 6),
+            BorderSizePixel = 0,
+            Parent = watermark,
+        }):FindFirstChildOfClass("UICorner") or corner(watermark:FindFirstChild("Frame") or create("Frame", { Parent = watermark }), 3)
+
+        -- fix: create the dot properly
+        local dot = create("Frame", {
+            BackgroundColor3 = theme.Accent,
+            Position = UDim2.new(0, 8, 0.5, -3),
+            Size = UDim2.new(0, 6, 0, 6),
+            BorderSizePixel = 0,
+            Parent = watermark,
+        })
+        corner(dot, 3)
 
         local wmLabel = create("TextLabel", {
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 1, 0),
-            Font = Enum.Font.GothamBold,
-            TextSize = 11,
-            TextColor3 = theme.Text,
+            Position = UDim2.new(0, 20, 0, 0),
+            Size = UDim2.new(1, -24, 1, 0),
+            Font = Enum.Font.GothamMedium,
+            TextSize = 10,
+            TextColor3 = theme.SubText,
+            TextXAlignment = Enum.TextXAlignment.Left,
             Text = "Scriptora • loading…",
             Parent = watermark,
         })
@@ -939,40 +1618,37 @@ function Scriptora:CreateWindow(opts)
 
         task.spawn(function()
             local lastFrame = tick()
-            local fps = 60
-            while watermark.Parent do
+            while watermark and watermark.Parent do
                 local now = tick()
-                fps = 1 / (now - lastFrame)
+                local fps = math.floor(1 / math.max(now - lastFrame, 0.001))
                 lastFrame = now
                 local ping = 0
-                pcall(function()
-                    ping = math.floor(Stats.PerformanceStats.Ping:GetValue())
-                end)
-                wmLabel.Text = string.format("Scriptora • %d FPS • %d ms • %s",
-                    math.floor(fps), ping, os.date("%H:%M:%S"))
+                pcall(function() ping = math.floor(Stats.PerformanceStats.Ping:GetValue()) end)
+                wmLabel.Text = string.format("Scriptora  •  %d FPS  •  %d ms  •  %s",
+                    fps, ping, os.date("%H:%M:%S"))
                 task.wait(0.5)
             end
         end)
     end
 
-    -- ------------------ TOGGLE KEY ------------------
+    -- ── TOGGLE KEY ──
     UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == toggleKey then W:Toggle() end
     end)
 
-    -- ------------------ AFTER SPLASH: REVEAL UI ------------------
+    -- ── SPLASH -> REVEAL ──
     task.spawn(function()
-        task.wait(0.7)
-        tween(splash, 0.3, { BackgroundTransparency = 1 })
+        task.wait(0.75)
+        tween(splash, 0.25, { BackgroundTransparency = 1 })
+        tween(splashAccent, 0.2, { BackgroundTransparency = 1 })
         tween(splashTitle, 0.2, { TextTransparency = 1 })
         tween(splashSub, 0.2, { TextTransparency = 1 })
         tween(splashBar, 0.2, { BackgroundTransparency = 1 })
         tween(splashFill, 0.2, { BackgroundTransparency = 1 })
         task.wait(0.3)
         splash:Destroy()
-
-        tween(main, 0.4, { Size = size, BackgroundTransparency = 0 }, Enum.EasingStyle.Back)
+        tween(main, 0.45, { Size = size, BackgroundTransparency = 0 }, Enum.EasingStyle.Back)
     end)
 
     -- ============================================================
@@ -982,54 +1658,14 @@ function Scriptora:CreateWindow(opts)
         tabOpts = tabOpts or {}
         local tab = {}
         tab.Name = tabOpts.Name or "Tab"
-        tab.Icon = tabOpts.Icon or "•"
+        tab.Icon = tabOpts.Icon or ""
         tab.Elements = {}
-
-        local tabBtn = create("TextButton", {
-            BackgroundColor3 = theme.Tertiary,
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 32),
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            TextColor3 = theme.SubText,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Text = "          " .. tab.Name, -- Pad text for icon
-            AutoButtonColor = false,
-            Parent = tabHolder,
-        })
-        corner(tabBtn, 6)
-
-        local tabIcon = create("ImageLabel", {
-            BackgroundTransparency = 1,
-            Position = UDim2.new(0, 10, 0.5, -8),
-            Size = UDim2.new(0, 16, 0, 16),
-            Image = tab.Icon,
-            ImageColor3 = theme.SubText,
-            Parent = tabBtn,
-        })
-        W:themed(tabBtn, { 
-            BackgroundColor3 = function(t) return page.Visible and t.Tertiary or t.Secondary end,
-            TextColor3 = function(t) return page.Visible and t.Text or t.SubText end
-        })
-        W:themed(tabIcon, { ImageColor3 = function(t) return page.Visible and t.Text or t.SubText end })
-
-        -- left accent indicator
-        local accentBar = create("Frame", {
-            BackgroundColor3 = theme.Accent,
-            Position = UDim2.new(0, 0, 0.5, -6),
-            Size = UDim2.new(0, 0, 0, 12),
-            BorderSizePixel = 0,
-            Parent = tabBtn,
-        })
-        corner(accentBar, 2)
-
-        tab.Button = tabBtn
 
         local page = create("ScrollingFrame", {
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 1, 0),
             Visible = false,
-            ScrollBarThickness = 3,
+            ScrollBarThickness = 2,
             ScrollBarImageColor3 = theme.Element,
             CanvasSize = UDim2.new(0, 0, 0, 0),
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
@@ -1041,26 +1677,61 @@ function Scriptora:CreateWindow(opts)
         listLayout(page, 8)
         tab.Page = page
 
+        local tabBtn = create("TextButton", {
+            BackgroundColor3 = theme.Tertiary,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 34),
+            Font = Enum.Font.GothamMedium,
+            TextSize = 12,
+            TextColor3 = theme.SubText,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Text = "          " .. tab.Name,
+            AutoButtonColor = false,
+            Parent = tabHolder,
+        })
+        corner(tabBtn, 7)
+
+        if tab.Icon ~= "" then
+            local tabIcon = create("ImageLabel", {
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 10, 0.5, -8),
+                Size = UDim2.new(0, 16, 0, 16),
+                Image = tab.Icon,
+                ImageColor3 = theme.SubText,
+                Parent = tabBtn,
+            })
+        end
+
+        -- left accent indicator
+        local accentBar = create("Frame", {
+            BackgroundColor3 = theme.Accent,
+            Position = UDim2.new(0, 0, 0.5, -7),
+            Size = UDim2.new(0, 0, 0, 14),
+            BorderSizePixel = 0,
+            Parent = tabBtn,
+        })
+        corner(accentBar, 2)
+
+        tab.Button = tabBtn
+
         local function selectTab()
             for _, t in ipairs(W.Tabs) do
                 t.Page.Visible = false
                 tween(t.Button, 0.2, { BackgroundTransparency = 1, TextColor3 = W.CurrentTheme.SubText })
-                local ab = t.Button:FindFirstChildOfClass("Frame")
-                if ab then tween(ab, 0.2, { Size = UDim2.new(0, 0, 0, 12) }) end
+                local ab = t.Button:FindFirstChild("Frame")
+                if ab and ab:IsA("Frame") then tween(ab, 0.2, { Size = UDim2.new(0, 0, 0, 14) }) end
             end
             page.Visible = true
-            tween(tabBtn, 0.2, { BackgroundTransparency = 0, BackgroundColor3 = W.CurrentTheme.Tertiary, TextColor3 = W.CurrentTheme.Text })
-            tween(accentBar, 0.25, { Size = UDim2.new(0, 3, 0, 16) }, Enum.EasingStyle.Back)
+            tween(tabBtn, 0.2, { BackgroundTransparency = 0.15, BackgroundColor3 = W.CurrentTheme.Tertiary, TextColor3 = W.CurrentTheme.Text })
+            tween(accentBar, 0.25, { Size = UDim2.new(0, 3, 0, 18) }, Enum.EasingStyle.Back)
 
-            -- fade in elements
-            page.Position = UDim2.new(0, 8, 0, 0)
-            tween(page, 0.25, { Position = UDim2.new(0, 0, 0, 0) })
+            page.CanvasPosition = Vector2.new(0, 0)
         end
 
         tabBtn.MouseButton1Click:Connect(selectTab)
         tabBtn.MouseEnter:Connect(function()
             if not page.Visible then
-                tween(tabBtn, 0.15, { TextColor3 = W.CurrentTheme.Text, BackgroundTransparency = 0.7 })
+                tween(tabBtn, 0.15, { TextColor3 = W.CurrentTheme.Text, BackgroundTransparency = 0.5 })
             end
         end)
         tabBtn.MouseLeave:Connect(function()
@@ -1072,28 +1743,23 @@ function Scriptora:CreateWindow(opts)
         if #W.Tabs == 0 then selectTab() end
         table.insert(W.Tabs, tab)
 
-        -- ====================================================
-        -- // ELEMENT REGISTRATION (for search)
-        -- ====================================================
+        -- element registration for search
         local function registerElement(frame, searchText, name)
-            local entry = {
+            table.insert(W.AllElements, {
                 Frame = frame,
                 Name = string.lower(searchText or name or ""),
                 DisplayName = name or "",
                 Tab = tab,
-            }
-            table.insert(W.AllElements, entry)
-            return entry
+            })
         end
 
         -- ====================================================
         -- // SECTION
         -- ====================================================
         function tab:AddSection(name)
-            local section = {}
             local holder = create("Frame", {
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 22),
+                Size = UDim2.new(1, 0, 0, 24),
                 Parent = page,
             })
             local label = W:themed(create("TextLabel", {
@@ -1101,29 +1767,29 @@ function Scriptora:CreateWindow(opts)
                 Size = UDim2.new(0, 0, 1, 0),
                 AutomaticSize = Enum.AutomaticSize.X,
                 Font = Enum.Font.GothamBold,
-                TextSize = 11,
+                TextSize = 10,
                 TextColor3 = theme.SubText,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Text = string.upper(name),
                 Parent = holder,
             }), { TextColor3 = "SubText" })
-            -- right divider line
+
             local line = W:themed(create("Frame", {
                 BackgroundColor3 = theme.Border,
-                BackgroundTransparency = 0.4,
+                BackgroundTransparency = 0.5,
                 Position = UDim2.new(0, 0, 0.5, 0),
                 Size = UDim2.new(1, 0, 0, 1),
                 BorderSizePixel = 0,
                 ZIndex = 0,
                 Parent = holder,
             }), { BackgroundColor3 = "Border" })
-            -- push label so the line starts after it
+
             label:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-                line.Position = UDim2.new(0, label.AbsoluteSize.X + 8, 0.5, 0)
-                line.Size = UDim2.new(1, -(label.AbsoluteSize.X + 8), 0, 1)
+                line.Position = UDim2.new(0, label.AbsoluteSize.X + 10, 0.5, 0)
+                line.Size = UDim2.new(1, -(label.AbsoluteSize.X + 10), 0, 1)
             end)
-            section.Label = label
-            return section
+
+            return { Label = label }
         end
 
         -- ====================================================
@@ -1134,15 +1800,16 @@ function Scriptora:CreateWindow(opts)
             local btnTitle = opts.Title or opts.Name or "Button"
             local desc = opts.Description or ""
             local callback = opts.Callback or function() end
+
             local frame = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
-                Size = UDim2.new(1, 0, 0, desc ~= "" and 50 or 36),
+                Size = UDim2.new(1, 0, 0, desc ~= "" and 52 or 38),
                 BorderSizePixel = 0,
                 Parent = page,
             })
             W:themed(frame, { BackgroundColor3 = "Secondary" })
-            corner(frame, 6)
-            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
+            corner(frame, 8)
+            W:themed(stroke(frame, theme.Border, 1, 0.4), { Color = "Border" })
 
             local btn = create("TextButton", {
                 BackgroundTransparency = 1,
@@ -1151,12 +1818,13 @@ function Scriptora:CreateWindow(opts)
                 AutoButtonColor = false,
                 Parent = frame,
             })
+            addRipple(btn, theme)
 
-            local titleLbl = W:themed(create("TextLabel", {
+            W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, desc ~= "" and 6 or 0),
-                Size = desc ~= "" and UDim2.new(1, -34, 0, 18) or UDim2.new(1, -34, 1, 0),
-                Font = Enum.Font.Gotham,
+                Position = UDim2.new(0, 14, 0, desc ~= "" and 7 or 0),
+                Size = desc ~= "" and UDim2.new(1, -36, 0, 18) or UDim2.new(1, -36, 1, 0),
+                Font = Enum.Font.GothamMedium,
                 TextSize = 13,
                 TextColor3 = theme.Text,
                 TextXAlignment = Enum.TextXAlignment.Left,
@@ -1164,12 +1832,11 @@ function Scriptora:CreateWindow(opts)
                 Parent = frame,
             }), { TextColor3 = "Text" })
 
-            local descLbl
             if desc ~= "" then
-                descLbl = W:themed(create("TextLabel", {
+                W:themed(create("TextLabel", {
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 12, 0, 26),
-                    Size = UDim2.new(1, -34, 0, 16),
+                    Position = UDim2.new(0, 14, 0, 27),
+                    Size = UDim2.new(1, -36, 0, 16),
                     Font = Enum.Font.Gotham,
                     TextSize = 11,
                     TextColor3 = theme.SubText,
@@ -1181,31 +1848,24 @@ function Scriptora:CreateWindow(opts)
 
             local arrow = W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
-                Position = UDim2.new(1, -22, 0, 0),
-                Size = UDim2.new(0, 12, 1, 0),
+                Position = UDim2.new(1, -24, 0, 0),
+                Size = UDim2.new(0, 14, 1, 0),
                 Font = Enum.Font.GothamBold,
                 TextSize = 14,
-                TextColor3 = theme.SubText,
+                TextColor3 = theme.Disabled,
                 Text = "›",
                 Parent = frame,
-            }), { TextColor3 = "SubText" })
-
-            W:themed(frame, { BackgroundColor3 = "Secondary" })
-            W:themed(titleLbl, { TextColor3 = "Text" })
-            if descLbl then W:themed(descLbl, { TextColor3 = "SubText" }) end
+            }), { TextColor3 = "Disabled" })
 
             btn.MouseEnter:Connect(function()
                 tween(frame, 0.15, { BackgroundColor3 = theme.Tertiary })
-                tween(arrow, 0.15, { TextColor3 = theme.Accent, Position = UDim2.new(1, -18, 0, 0) })
+                tween(arrow, 0.15, { TextColor3 = theme.Accent, Position = UDim2.new(1, -20, 0, 0) })
             end)
             btn.MouseLeave:Connect(function()
                 tween(frame, 0.15, { BackgroundColor3 = theme.Secondary })
-                tween(arrow, 0.15, { TextColor3 = theme.SubText, Position = UDim2.new(1, -22, 0, 0) })
+                tween(arrow, 0.15, { TextColor3 = theme.Disabled, Position = UDim2.new(1, -24, 0, 0) })
             end)
             btn.MouseButton1Click:Connect(function()
-                tween(frame, 0.08, { BackgroundColor3 = theme.AccentDim })
-                task.wait(0.1)
-                tween(frame, 0.15, { BackgroundColor3 = theme.Tertiary })
                 task.spawn(callback)
             end)
 
@@ -1225,15 +1885,16 @@ function Scriptora:CreateWindow(opts)
             local callback = opts.Callback or function() end
 
             local toggle = { Value = default }
+
             local frame = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
-                Size = UDim2.new(1, 0, 0, desc ~= "" and 50 or 36),
+                Size = UDim2.new(1, 0, 0, desc ~= "" and 52 or 38),
                 BorderSizePixel = 0,
                 Parent = page,
             })
             W:themed(frame, { BackgroundColor3 = "Secondary" })
-            corner(frame, 6)
-            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
+            corner(frame, 8)
+            W:themed(stroke(frame, theme.Border, 1, 0.4), { Color = "Border" })
 
             local btn = create("TextButton", {
                 BackgroundTransparency = 1,
@@ -1243,11 +1904,11 @@ function Scriptora:CreateWindow(opts)
                 Parent = frame,
             })
 
-            local titleLbl = W:themed(create("TextLabel", {
+            W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, desc ~= "" and 6 or 0),
-                Size = desc ~= "" and UDim2.new(1, -64, 0, 18) or UDim2.new(1, -64, 1, 0),
-                Font = Enum.Font.Gotham,
+                Position = UDim2.new(0, 14, 0, desc ~= "" and 7 or 0),
+                Size = desc ~= "" and UDim2.new(1, -66, 0, 18) or UDim2.new(1, -66, 1, 0),
+                Font = Enum.Font.GothamMedium,
                 TextSize = 13,
                 TextColor3 = theme.Text,
                 TextXAlignment = Enum.TextXAlignment.Left,
@@ -1255,12 +1916,11 @@ function Scriptora:CreateWindow(opts)
                 Parent = frame,
             }), { TextColor3 = "Text" })
 
-            local descLbl
             if desc ~= "" then
-                descLbl = W:themed(create("TextLabel", {
+                W:themed(create("TextLabel", {
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 12, 0, 26),
-                    Size = UDim2.new(1, -64, 0, 16),
+                    Position = UDim2.new(0, 14, 0, 27),
+                    Size = UDim2.new(1, -66, 0, 16),
                     Font = Enum.Font.Gotham,
                     TextSize = 11,
                     TextColor3 = theme.SubText,
@@ -1270,15 +1930,17 @@ function Scriptora:CreateWindow(opts)
                 }), { TextColor3 = "SubText" })
             end
 
-            local switch = W:themed(create("Frame", {
+            -- switch track
+            local switch = create("Frame", {
                 BackgroundColor3 = theme.Element,
-                Position = UDim2.new(1, -42, 0.5, -10),
-                Size = UDim2.new(0, 32, 0, 18),
+                Position = UDim2.new(1, -46, 0.5, -10),
+                Size = UDim2.new(0, 34, 0, 18),
                 BorderSizePixel = 0,
                 Parent = frame,
-            }), { BackgroundColor3 = function(t) return toggle.Value and t.Accent or t.Element end })
+            })
             corner(switch, 9)
 
+            -- knob
             local knob = create("Frame", {
                 BackgroundColor3 = theme.Text,
                 Position = UDim2.new(0, 2, 0.5, -7),
@@ -1288,13 +1950,26 @@ function Scriptora:CreateWindow(opts)
             })
             corner(knob, 7)
 
+            -- glow behind knob when active
+            local knobGlow = create("Frame", {
+                BackgroundColor3 = theme.Accent,
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0.5, 0, 0.5, 0),
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Size = UDim2.new(0, 20, 0, 20),
+                Parent = knob,
+            })
+            corner(knobGlow, 10)
+
             local function refresh()
                 if toggle.Value then
                     tween(switch, 0.2, { BackgroundColor3 = theme.Accent })
-                    tween(knob, 0.25, { Position = UDim2.new(1, -16, 0.5, -7) }, Enum.EasingStyle.Back)
+                    tween(knob, 0.25, { Position = UDim2.new(1, -16, 0.5, -7), BackgroundColor3 = theme.Text }, Enum.EasingStyle.Back)
+                    tween(knobGlow, 0.2, { BackgroundTransparency = 0.75 })
                 else
                     tween(switch, 0.2, { BackgroundColor3 = theme.Element })
-                    tween(knob, 0.25, { Position = UDim2.new(0, 2, 0.5, -7) }, Enum.EasingStyle.Back)
+                    tween(knob, 0.25, { Position = UDim2.new(0, 2, 0.5, -7), BackgroundColor3 = theme.SubText }, Enum.EasingStyle.Back)
+                    tween(knobGlow, 0.2, { BackgroundTransparency = 1 })
                 end
             end
 
@@ -1335,19 +2010,19 @@ function Scriptora:CreateWindow(opts)
 
             local frame = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
-                Size = UDim2.new(1, 0, 0, 56),
+                Size = UDim2.new(1, 0, 0, 58),
                 BorderSizePixel = 0,
                 Parent = page,
             })
             W:themed(frame, { BackgroundColor3 = "Secondary" })
-            corner(frame, 6)
-            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
+            corner(frame, 8)
+            W:themed(stroke(frame, theme.Border, 1, 0.4), { Color = "Border" })
 
-            local titleLbl = W:themed(create("TextLabel", {
+            W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, 6),
-                Size = UDim2.new(1, -24, 0, 18),
-                Font = Enum.Font.Gotham,
+                Position = UDim2.new(0, 14, 0, 8),
+                Size = UDim2.new(1, -28, 0, 16),
+                Font = Enum.Font.GothamMedium,
                 TextSize = 13,
                 TextColor3 = theme.Text,
                 TextXAlignment = Enum.TextXAlignment.Left,
@@ -1355,39 +2030,44 @@ function Scriptora:CreateWindow(opts)
                 Parent = frame,
             }), { TextColor3 = "Text" })
 
-            local valueLabel = W:themed(create("TextLabel", {
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, 6),
-                Size = UDim2.new(1, -24, 0, 18),
-                Font = Enum.Font.GothamBold,
-                TextSize = 12,
-                TextColor3 = theme.Accent,
-                TextXAlignment = Enum.TextXAlignment.Right,
-                Text = tostring(default) .. suffix,
+            -- value badge
+            local valueBg = create("Frame", {
+                BackgroundColor3 = theme.Accent,
+                BackgroundTransparency = 0.85,
+                Position = UDim2.new(1, -64, 0, 6),
+                Size = UDim2.new(0, 50, 0, 20),
+                BorderSizePixel = 0,
                 Parent = frame,
-            }), { TextColor3 = "Accent" })
+            })
+            corner(valueBg, 5)
+
+            local valueLabel = create("TextLabel", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 1, 0),
+                Font = Enum.Font.GothamBold,
+                TextSize = 11,
+                TextColor3 = theme.Accent,
+                Text = tostring(default) .. suffix,
+                Parent = valueBg,
+            })
 
             local track = W:themed(create("Frame", {
                 BackgroundColor3 = theme.Element,
-                Position = UDim2.new(0, 12, 1, -16),
-                Size = UDim2.new(1, -24, 0, 6),
+                Position = UDim2.new(0, 14, 1, -18),
+                Size = UDim2.new(1, -28, 0, 6),
                 BorderSizePixel = 0,
                 Parent = frame,
             }), { BackgroundColor3 = "Element" })
             corner(track, 3)
 
-            local fill = W:themed(create("Frame", {
+            local fill = create("Frame", {
                 BackgroundColor3 = theme.Accent,
                 Size = UDim2.new((default - min) / (max - min), 0, 1, 0),
                 BorderSizePixel = 0,
                 Parent = track,
-            }), { BackgroundColor3 = "Accent" })
+            })
             corner(fill, 3)
-            -- gradient on fill
-            gradient(fill, ColorSequence.new({
-                ColorSequenceKeypoint.new(0, theme.AccentDim),
-                ColorSequenceKeypoint.new(1, theme.Accent),
-            }), 0)
+            gradient(fill, ColorSequence.new(theme.AccentDim, theme.Accent), 0)
 
             local knob = create("Frame", {
                 BackgroundColor3 = theme.Text,
@@ -1395,10 +2075,11 @@ function Scriptora:CreateWindow(opts)
                 AnchorPoint = Vector2.new(0.5, 0.5),
                 Size = UDim2.new(0, 14, 0, 14),
                 BorderSizePixel = 0,
+                ZIndex = 2,
                 Parent = fill,
             })
             corner(knob, 7)
-            stroke(knob, theme.Accent, 2)
+            stroke(knob, theme.Accent, 2, 0.2)
 
             local dragging = false
             local function updateFromMouse()
@@ -1414,7 +2095,7 @@ function Scriptora:CreateWindow(opts)
                 slider.Value = v
                 if flag then Scriptora.Flags[flag] = v end
                 local pct = (v - min) / (max - min)
-                tween(fill, 0.1, { Size = UDim2.new(pct, 0, 1, 0) })
+                tween(fill, 0.08, { Size = UDim2.new(pct, 0, 1, 0) })
                 valueLabel.Text = tostring(v) .. suffix
                 if not silent then task.spawn(callback, v) end
             end
@@ -1430,9 +2111,7 @@ function Scriptora:CreateWindow(opts)
             UserInputService.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1
                 or input.UserInputType == Enum.UserInputType.Touch then
-                    if dragging then
-                        tween(knob, 0.15, { Size = UDim2.new(0, 14, 0, 14) })
-                    end
+                    if dragging then tween(knob, 0.15, { Size = UDim2.new(0, 14, 0, 14) }) end
                     dragging = false
                 end
             end)
@@ -1444,7 +2123,6 @@ function Scriptora:CreateWindow(opts)
             end)
 
             if flag then Scriptora.Flags[flag] = default end
-
             registerElement(frame, title, title)
             return slider
         end
@@ -1469,31 +2147,31 @@ function Scriptora:CreateWindow(opts)
 
             local frame = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
-                Size = UDim2.new(1, 0, 0, 50),
+                Size = UDim2.new(1, 0, 0, 52),
                 BorderSizePixel = 0,
                 ClipsDescendants = true,
                 Parent = page,
             })
             W:themed(frame, { BackgroundColor3 = "Secondary" })
-            corner(frame, 6)
-            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
+            corner(frame, 8)
+            W:themed(stroke(frame, theme.Border, 1, 0.4), { Color = "Border" })
 
-            create("TextLabel", {
+            W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, 6),
-                Size = UDim2.new(1, -24, 0, 16),
-                Font = Enum.Font.Gotham,
+                Position = UDim2.new(0, 14, 0, 7),
+                Size = UDim2.new(1, -28, 0, 16),
+                Font = Enum.Font.GothamMedium,
                 TextSize = 13,
                 TextColor3 = theme.Text,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Text = title,
                 Parent = frame,
-            })
+            }), { TextColor3 = "Text" })
 
-            local selectButton = W:themed(create("TextButton", {
+            local selectButton = create("TextButton", {
                 BackgroundColor3 = theme.Element,
-                Position = UDim2.new(0, 12, 0, 24),
-                Size = UDim2.new(1, -24, 0, 22),
+                Position = UDim2.new(0, 14, 0, 26),
+                Size = UDim2.new(1, -28, 0, 22),
                 Font = Enum.Font.Gotham,
                 TextSize = 12,
                 TextColor3 = theme.SubText,
@@ -1501,29 +2179,29 @@ function Scriptora:CreateWindow(opts)
                 Text = "  Select…",
                 AutoButtonColor = false,
                 Parent = frame,
-            }), { BackgroundColor3 = "Element", TextColor3 = function(t) return dropdown.Value and t.Text or t.SubText end })
-            corner(selectButton, 4)
+            })
+            corner(selectButton, 5)
 
             local arrow = create("TextLabel", {
                 BackgroundTransparency = 1,
                 Position = UDim2.new(1, -18, 0, 0),
                 Size = UDim2.new(0, 14, 1, 0),
                 Font = Enum.Font.GothamBold,
-                TextSize = 11,
-                TextColor3 = theme.SubText,
+                TextSize = 10,
+                TextColor3 = theme.Disabled,
                 Text = "▼",
                 Parent = selectButton,
             })
 
             local optionsHolder = create("Frame", {
                 BackgroundColor3 = theme.Tertiary,
-                Position = UDim2.new(0, 12, 0, 50),
-                Size = UDim2.new(1, -24, 0, 0),
+                Position = UDim2.new(0, 14, 0, 52),
+                Size = UDim2.new(1, -28, 0, 0),
                 BorderSizePixel = 0,
                 ClipsDescendants = true,
                 Parent = frame,
             })
-            corner(optionsHolder, 4)
+            corner(optionsHolder, 5)
             W:themed(stroke(optionsHolder, theme.Border, 1, 0.5), { Color = "Border" })
 
             local optionsList = create("ScrollingFrame", {
@@ -1538,6 +2216,8 @@ function Scriptora:CreateWindow(opts)
             })
             listLayout(optionsList, 2)
             padding(optionsList, 4)
+
+            local optionButtons = {}
 
             local function refreshLabel()
                 if multi then
@@ -1562,15 +2242,11 @@ function Scriptora:CreateWindow(opts)
                 end
             end
 
-            local optionButtons = {}
-
             local function refreshButtonStates()
                 for opt, b in pairs(optionButtons) do
                     local sel = false
                     if multi then
-                        for _, v in ipairs(dropdown.Value) do
-                            if v == opt then sel = true break end
-                        end
+                        for _, v in ipairs(dropdown.Value) do if v == opt then sel = true break end end
                     else
                         sel = (dropdown.Value == opt)
                     end
@@ -1591,7 +2267,7 @@ function Scriptora:CreateWindow(opts)
                     local optBtn = create("TextButton", {
                         BackgroundColor3 = theme.Element,
                         BackgroundTransparency = 1,
-                        Size = UDim2.new(1, 0, 0, 22),
+                        Size = UDim2.new(1, 0, 0, 24),
                         Font = Enum.Font.Gotham,
                         TextSize = 12,
                         TextColor3 = theme.SubText,
@@ -1600,37 +2276,13 @@ function Scriptora:CreateWindow(opts)
                         AutoButtonColor = false,
                         Parent = optionsList,
                     })
-                    corner(optBtn, 4)
+                    corner(optBtn, 5)
                     optionButtons[opt] = optBtn
-
-                    -- Link to theme engine with state-aware logic
-                    W:themed(optBtn, {
-                        BackgroundColor3 = function(t) 
-                            local sel = false
-                            if multi then for _, v in ipairs(dropdown.Value) do if v == opt then sel = true break end end
-                            else sel = (dropdown.Value == opt) end
-                            return sel and t.Accent or t.Element
-                        end,
-                        TextColor3 = function(t)
-                            local sel = false
-                            if multi then for _, v in ipairs(dropdown.Value) do if v == opt then sel = true break end end
-                            else sel = (dropdown.Value == opt) end
-                            return sel and t.Text or t.SubText
-                        end,
-                        BackgroundTransparency = function()
-                            local sel = false
-                            if multi then for _, v in ipairs(dropdown.Value) do if v == opt then sel = true break end end
-                            else sel = (dropdown.Value == opt) end
-                            return sel and 0 or 1
-                        end
-                    })
 
                     optBtn.MouseEnter:Connect(function()
                         local isSel = false
                         if multi then
-                            for _, v in ipairs(dropdown.Value) do
-                                if v == opt then isSel = true break end
-                            end
+                            for _, v in ipairs(dropdown.Value) do if v == opt then isSel = true break end end
                         else isSel = (dropdown.Value == opt) end
                         if not isSel then
                             tween(optBtn, 0.12, { BackgroundTransparency = 0.4, BackgroundColor3 = W.CurrentTheme.Element, TextColor3 = W.CurrentTheme.Text })
@@ -1641,14 +2293,8 @@ function Scriptora:CreateWindow(opts)
                     optBtn.MouseButton1Click:Connect(function()
                         if multi then
                             local idx
-                            for i, v in ipairs(dropdown.Value) do
-                                if v == opt then idx = i break end
-                            end
-                            if idx then
-                                table.remove(dropdown.Value, idx)
-                            else
-                                table.insert(dropdown.Value, opt)
-                            end
+                            for i, v in ipairs(dropdown.Value) do if v == opt then idx = i break end end
+                            if idx then table.remove(dropdown.Value, idx) else table.insert(dropdown.Value, opt) end
                         else
                             dropdown.Value = opt
                             dropdown:Toggle(false)
@@ -1666,22 +2312,20 @@ function Scriptora:CreateWindow(opts)
                 if state == nil then state = not dropdown.Open end
                 dropdown.Open = state
                 if state then
-                    local h = math.min(#dropdown.Options * 24 + 8, 130)
-                    tween(frame, 0.25, { Size = UDim2.new(1, 0, 0, 50 + h + 6) })
-                    tween(optionsHolder, 0.25, { Size = UDim2.new(1, -24, 0, h) })
+                    local h = math.min(#dropdown.Options * 26 + 8, 140)
+                    tween(frame, 0.25, { Size = UDim2.new(1, 0, 0, 52 + h + 6) })
+                    tween(optionsHolder, 0.25, { Size = UDim2.new(1, -28, 0, h) })
                     tween(arrow, 0.2, { Rotation = 180 })
                 else
-                    tween(frame, 0.25, { Size = UDim2.new(1, 0, 0, 50) })
-                    tween(optionsHolder, 0.25, { Size = UDim2.new(1, -24, 0, 0) })
+                    tween(frame, 0.25, { Size = UDim2.new(1, 0, 0, 52) })
+                    tween(optionsHolder, 0.25, { Size = UDim2.new(1, -28, 0, 0) })
                     tween(arrow, 0.2, { Rotation = 0 })
                 end
             end
 
             function dropdown:Refresh(newOptions, keepSelection)
                 dropdown.Options = newOptions or {}
-                if not keepSelection then
-                    dropdown.Value = multi and {} or nil
-                end
+                if not keepSelection then dropdown.Value = multi and {} or nil end
                 rebuildOptions()
                 refreshLabel()
             end
@@ -1695,7 +2339,6 @@ function Scriptora:CreateWindow(opts)
             end
 
             selectButton.MouseButton1Click:Connect(function() dropdown:Toggle() end)
-
             rebuildOptions()
             refreshLabel()
             if flag then Scriptora.Flags[flag] = dropdown.Value end
@@ -1727,42 +2370,42 @@ function Scriptora:CreateWindow(opts)
 
             local frame = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
-                Size = UDim2.new(1, 0, 0, 50),
+                Size = UDim2.new(1, 0, 0, 52),
                 BorderSizePixel = 0,
                 Parent = page,
             })
             W:themed(frame, { BackgroundColor3 = "Secondary" })
-            corner(frame, 6)
-            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
+            corner(frame, 8)
+            W:themed(stroke(frame, theme.Border, 1, 0.4), { Color = "Border" })
 
-            create("TextLabel", {
+            W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, 6),
-                Size = UDim2.new(1, -24, 0, 16),
-                Font = Enum.Font.Gotham,
+                Position = UDim2.new(0, 14, 0, 7),
+                Size = UDim2.new(1, -28, 0, 16),
+                Font = Enum.Font.GothamMedium,
                 TextSize = 13,
                 TextColor3 = theme.Text,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Text = title,
                 Parent = frame,
-            })
+            }), { TextColor3 = "Text" })
 
-            local box = W:themed(create("TextBox", {
+            local box = create("TextBox", {
                 BackgroundColor3 = theme.Element,
-                Position = UDim2.new(0, 12, 0, 24),
-                Size = UDim2.new(1, -24, 0, 22),
+                Position = UDim2.new(0, 14, 0, 26),
+                Size = UDim2.new(1, -28, 0, 22),
                 Font = Enum.Font.Gotham,
                 TextSize = 12,
                 TextColor3 = theme.Text,
-                PlaceholderColor3 = theme.SubText,
+                PlaceholderColor3 = theme.Disabled,
                 PlaceholderText = placeholder,
                 Text = default,
                 ClearTextOnFocus = clearOnFocus,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = frame,
-            }), { BackgroundColor3 = "Element", TextColor3 = "Text", PlaceholderColor3 = "SubText" })
-            corner(box, 4)
-            padding(box, 0, 6)
+            })
+            corner(box, 5)
+            padding(box, 0, 8)
             local boxStroke = stroke(box, theme.Border, 1, 0.5)
 
             box.Focused:Connect(function()
@@ -1770,9 +2413,7 @@ function Scriptora:CreateWindow(opts)
             end)
             box.FocusLost:Connect(function(enter)
                 tween(boxStroke, 0.15, { Color = theme.Border, Transparency = 0.5 })
-                if numericOnly then
-                    box.Text = box.Text:gsub("[^%-%d%.]", "")
-                end
+                if numericOnly then box.Text = box.Text:gsub("[^%-%d%.]", "") end
                 input.Value = box.Text
                 if flag then Scriptora.Flags[flag] = box.Text end
                 task.spawn(callback, box.Text, enter)
@@ -1805,43 +2446,43 @@ function Scriptora:CreateWindow(opts)
 
             local frame = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
-                Size = UDim2.new(1, 0, 0, 36),
+                Size = UDim2.new(1, 0, 0, 38),
                 BorderSizePixel = 0,
                 Parent = page,
             })
             W:themed(frame, { BackgroundColor3 = "Secondary" })
-            corner(frame, 6)
-            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
+            corner(frame, 8)
+            W:themed(stroke(frame, theme.Border, 1, 0.4), { Color = "Border" })
 
-            create("TextLabel", {
+            W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, 0),
+                Position = UDim2.new(0, 14, 0, 0),
                 Size = UDim2.new(1, -100, 1, 0),
-                Font = Enum.Font.Gotham,
+                Font = Enum.Font.GothamMedium,
                 TextSize = 13,
                 TextColor3 = theme.Text,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Text = title,
                 Parent = frame,
-            })
+            }), { TextColor3 = "Text" })
 
             local btn = create("TextButton", {
                 BackgroundColor3 = theme.Element,
-                Position = UDim2.new(1, -82, 0.5, -10),
-                Size = UDim2.new(0, 70, 0, 20),
+                Position = UDim2.new(1, -84, 0.5, -11),
+                Size = UDim2.new(0, 72, 0, 22),
                 Font = Enum.Font.GothamBold,
                 TextSize = 11,
-                TextColor3 = theme.Text,
+                TextColor3 = theme.SubText,
                 Text = default.Name,
                 AutoButtonColor = false,
                 Parent = frame,
             })
-            corner(btn, 4)
+            corner(btn, 5)
             stroke(btn, theme.Border, 1, 0.5)
 
             btn.MouseButton1Click:Connect(function()
                 keybind.Listening = true
-                btn.Text = "[ … ]"
+                btn.Text = "…"
                 btn.TextColor3 = theme.Accent
             end)
 
@@ -1854,26 +2495,18 @@ function Scriptora:CreateWindow(opts)
                     end
                     keybind.Listening = false
                     btn.Text = keybind.Key.Name
-                    btn.TextColor3 = theme.Text
+                    btn.TextColor3 = theme.SubText
                     if flag then Scriptora.Flags[flag] = keybind.Key end
                     return
                 end
                 if not gpe and not keybind.Listening and input.KeyCode == keybind.Key then
-                    if mode == "Press" then
-                        task.spawn(callback)
-                    elseif mode == "Toggle" then
-                        keybind.Toggled = not keybind.Toggled
-                        task.spawn(callback, keybind.Toggled)
-                    elseif mode == "Hold" then
-                        task.spawn(callback, true)
-                    end
+                    if mode == "Press" then task.spawn(callback)
+                    elseif mode == "Toggle" then keybind.Toggled = not keybind.Toggled; task.spawn(callback, keybind.Toggled)
+                    elseif mode == "Hold" then task.spawn(callback, true) end
                 end
             end)
-
             UserInputService.InputEnded:Connect(function(input)
-                if mode == "Hold" and input.KeyCode == keybind.Key then
-                    task.spawn(callback, false)
-                end
+                if mode == "Hold" and input.KeyCode == keybind.Key then task.spawn(callback, false) end
             end)
 
             function keybind:Set(key)
@@ -1888,12 +2521,12 @@ function Scriptora:CreateWindow(opts)
         end
 
         -- ====================================================
-        -- // COLOR PICKER
+        -- // COLOR PICKER (Enhanced)
         -- ====================================================
         function tab:AddColorPicker(opts)
             opts = opts or {}
             local title = opts.Title or opts.Name or "Color"
-            local default = opts.Default or Color3.fromRGB(255, 255, 255)
+            local default = opts.Default or Color3.fromRGB(168, 96, 255)
             local flag = opts.Flag
             local callback = opts.Callback or function() end
 
@@ -1901,65 +2534,111 @@ function Scriptora:CreateWindow(opts)
 
             local frame = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
-                Size = UDim2.new(1, 0, 0, 36),
+                Size = UDim2.new(1, 0, 0, 38),
                 BorderSizePixel = 0,
                 ClipsDescendants = true,
                 Parent = page,
             })
             W:themed(frame, { BackgroundColor3 = "Secondary" })
-            corner(frame, 6)
-            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
+            corner(frame, 8)
+            W:themed(stroke(frame, theme.Border, 1, 0.4), { Color = "Border" })
 
-            create("TextLabel", {
+            W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, 0),
-                Size = UDim2.new(1, -50, 0, 36),
-                Font = Enum.Font.Gotham,
+                Position = UDim2.new(0, 14, 0, 0),
+                Size = UDim2.new(1, -50, 0, 38),
+                Font = Enum.Font.GothamMedium,
                 TextSize = 13,
                 TextColor3 = theme.Text,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Text = title,
                 Parent = frame,
+            }), { TextColor3 = "Text" })
+
+            -- swatch button
+            local swatchOuter = create("Frame", {
+                BackgroundColor3 = theme.Element,
+                Position = UDim2.new(1, -38, 0.5, -12),
+                Size = UDim2.new(0, 28, 0, 24),
+                BorderSizePixel = 0,
+                Parent = frame,
             })
+            corner(swatchOuter, 6)
 
             local swatch = create("TextButton", {
                 BackgroundColor3 = default,
-                Position = UDim2.new(1, -32, 0.5, -10),
-                Size = UDim2.new(0, 22, 0, 20),
+                Position = UDim2.new(0, 3, 0, 3),
+                Size = UDim2.new(1, -6, 1, -6),
                 Text = "",
                 AutoButtonColor = false,
-                Parent = frame,
+                Parent = swatchOuter,
             })
             corner(swatch, 4)
-            stroke(swatch, theme.Border, 1)
 
-            local pickerFrame = W:themed(create("Frame", {
+            -- expanded picker area
+            local pickerFrame = create("Frame", {
                 BackgroundColor3 = theme.Tertiary,
-                Position = UDim2.new(0, 12, 0, 42),
-                Size = UDim2.new(1, -24, 0, 100),
+                Position = UDim2.new(0, 10, 0, 42),
+                Size = UDim2.new(1, -20, 0, 170),
                 BorderSizePixel = 0,
                 Parent = frame,
-            }), { BackgroundColor3 = "Tertiary" })
-            corner(pickerFrame, 4)
+            })
+            corner(pickerFrame, 8)
+            stroke(pickerFrame, theme.Border, 1, 0.4)
 
-            local satVal = create("ImageLabel", {
+            -- SV canvas (saturation/value)
+            local svCanvas = create("ImageLabel", {
                 BackgroundColor3 = Color3.fromRGB(255, 0, 0),
-                Position = UDim2.new(0, 6, 0, 6),
-                Size = UDim2.new(0, 88, 0, 88),
+                Position = UDim2.new(0, 8, 0, 8),
+                Size = UDim2.new(0, 120, 0, 100),
                 Image = "rbxassetid://4155801252",
                 BorderSizePixel = 0,
                 Parent = pickerFrame,
             })
-            corner(satVal, 3)
+            corner(svCanvas, 6)
 
+            -- SV cursor
+            local svCursor = create("Frame", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0, 14, 0, 14),
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position = UDim2.new(0.5, 0, 0.5, 0),
+                ZIndex = 3,
+                Parent = svCanvas,
+            })
+            local svRing = create("Frame", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 1, 0),
+                Parent = svCursor,
+            })
+            corner(svRing, 7)
+            stroke(svRing, Color3.fromRGB(255, 255, 255), 2)
+            -- dark inner ring for contrast
+            local svRingInner = create("Frame", {
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 1, 0, 1),
+                Size = UDim2.new(1, -2, 1, -2),
+                Parent = svCursor,
+            })
+            corner(svRingInner, 6)
+            stroke(svRingInner, Color3.fromRGB(0, 0, 0), 1, 0.5)
+
+            -- Hue bar (vertical)
             local hueBar = create("Frame", {
-                Position = UDim2.new(0, 100, 0, 6),
-                Size = UDim2.new(0, 12, 0, 88),
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 136, 0, 8),
+                Size = UDim2.new(0, 16, 0, 100),
                 BorderSizePixel = 0,
                 Parent = pickerFrame,
             })
-            corner(hueBar, 3)
-            local hueGrad = create("UIGradient", { Parent = hueBar })
+            local hueBg = create("Frame", {
+                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                Size = UDim2.new(1, 0, 1, 0),
+                BorderSizePixel = 0,
+                Parent = hueBar,
+            })
+            corner(hueBg, 4)
+            local hueGrad = create("UIGradient", { Parent = hueBg })
             hueGrad.Color = ColorSequence.new({
                 ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
                 ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255, 255, 0)),
@@ -1971,50 +2650,92 @@ function Scriptora:CreateWindow(opts)
             })
             hueGrad.Rotation = 90
 
-            local inputHolder = create("Frame", {
+            -- hue cursor
+            local hueCursor = create("Frame", {
+                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position = UDim2.new(0.5, 0, 0, 0),
+                Size = UDim2.new(1, 4, 0, 6),
+                BorderSizePixel = 0,
+                ZIndex = 3,
+                Parent = hueBar,
+            })
+            corner(hueCursor, 3)
+            stroke(hueCursor, Color3.fromRGB(0, 0, 0), 1, 0.4)
+
+            -- color preview + info on right
+            local rightCol = create("Frame", {
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 120, 0, 6),
-                Size = UDim2.new(1, -126, 0, 88),
+                Position = UDim2.new(0, 160, 0, 8),
+                Size = UDim2.new(1, -168, 0, 100),
                 Parent = pickerFrame,
             })
-            listLayout(inputHolder, 4)
+            listLayout(rightCol, 4)
 
-            local function createInput(label, default)
-                local container = create("Frame", {
+            -- preview swatch (large)
+            local preview = create("Frame", {
+                BackgroundColor3 = default,
+                Size = UDim2.new(1, 0, 0, 28),
+                BorderSizePixel = 0,
+                Parent = rightCol,
+            })
+            corner(preview, 6)
+            stroke(preview, theme.Border, 1, 0.4)
+
+            -- hex input
+            local function makeColorInput(label, val)
+                local c = create("Frame", {
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 18),
-                    Parent = inputHolder,
+                    Parent = rightCol,
                 })
                 create("TextLabel", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(0, 30, 1, 0),
+                    Size = UDim2.new(0, 18, 1, 0),
                     Font = Enum.Font.GothamBold,
-                    TextSize = 10,
+                    TextSize = 9,
                     TextColor3 = theme.SubText,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     Text = label,
-                    Parent = container,
+                    Parent = c,
                 })
-                local box = create("TextBox", {
+                local b = create("TextBox", {
                     BackgroundColor3 = theme.Element,
-                    Position = UDim2.new(0, 30, 0, 0),
-                    Size = UDim2.new(1, -30, 1, 0),
-                    Font = Enum.Font.Gotham,
+                    Position = UDim2.new(0, 20, 0, 0),
+                    Size = UDim2.new(1, -20, 1, 0),
+                    Font = Enum.Font.GothamMedium,
                     TextSize = 10,
                     TextColor3 = theme.Text,
-                    Text = tostring(default),
+                    Text = val,
                     ClearTextOnFocus = false,
-                    Parent = container,
+                    Parent = c,
                 })
-                corner(box, 3)
-                W:themed(box, { BackgroundColor3 = "Element", TextColor3 = "Text" })
-                return box
+                corner(b, 3)
+                padding(b, 0, 4)
+                return b
             end
 
-            local rInput = createInput("R", "255")
-            local gInput = createInput("G", "255")
-            local bInput = createInput("B", "255")
-            local hexInput = createInput("HEX", "#FFFFFF")
+            local hexInput = makeColorInput("H", "#" .. default:ToHex():upper())
+            local rInput = makeColorInput("R", tostring(math.floor(default.R * 255)))
+            local gInput = makeColorInput("G", tostring(math.floor(default.G * 255)))
+            local bInput = makeColorInput("B", tostring(math.floor(default.B * 255)))
+
+            -- preset colors row
+            local presetRow = create("Frame", {
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 8, 0, 116),
+                Size = UDim2.new(1, -16, 0, 22),
+                Parent = pickerFrame,
+            })
+            listLayout(presetRow, 4, Enum.FillDirection.Horizontal)
+
+            local presets = {
+                Color3.fromRGB(255, 255, 255), Color3.fromRGB(180, 180, 180),
+                Color3.fromRGB(255, 82, 82), Color3.fromRGB(255, 150, 50),
+                Color3.fromRGB(255, 220, 50), Color3.fromRGB(80, 220, 100),
+                Color3.fromRGB(50, 180, 255), Color3.fromRGB(168, 96, 255),
+                Color3.fromRGB(255, 100, 180), Color3.fromRGB(0, 0, 0),
+            }
 
             local h, s, v = Color3.toHSV(default)
             local updating = false
@@ -2025,8 +2746,13 @@ function Scriptora:CreateWindow(opts)
                 local color = Color3.fromHSV(h, s, v)
                 picker.Value = color
                 swatch.BackgroundColor3 = color
-                satVal.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
-                
+                preview.BackgroundColor3 = color
+                svCanvas.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
+
+                -- position cursors
+                svCursor.Position = UDim2.new(s, 0, 1 - v, 0)
+                hueCursor.Position = UDim2.new(0.5, 0, h, 0)
+
                 if not fromInputs then
                     rInput.Text = math.floor(color.R * 255)
                     gInput.Text = math.floor(color.G * 255)
@@ -2039,48 +2765,108 @@ function Scriptora:CreateWindow(opts)
                 updating = false
             end
 
-            local function onInputChange()
-                local r, g, b = tonumber(rInput.Text) or 0, tonumber(gInput.Text) or 0, tonumber(bInput.Text) or 0
-                local newColor = Color3.fromRGB(math.clamp(r, 0, 255), math.clamp(g, 0, 255), math.clamp(b, 0, 255))
-                h, s, v = Color3.toHSV(newColor)
+            -- preset buttons
+            for _, pc in ipairs(presets) do
+                local pb = create("TextButton", {
+                    BackgroundColor3 = pc,
+                    Size = UDim2.new(0, 18, 0, 18),
+                    Text = "",
+                    AutoButtonColor = false,
+                    Parent = presetRow,
+                })
+                corner(pb, 4)
+                stroke(pb, theme.Border, 1, 0.5)
+                pb.MouseButton1Click:Connect(function()
+                    h, s, v = Color3.toHSV(pc)
+                    updateColor()
+                end)
+            end
+
+            -- copy hex button
+            local copyBtn = create("TextButton", {
+                BackgroundColor3 = theme.Element,
+                Position = UDim2.new(0, 8, 0, 144),
+                Size = UDim2.new(0.5, -12, 0, 20),
+                Font = Enum.Font.GothamBold,
+                TextSize = 10,
+                TextColor3 = theme.SubText,
+                Text = "Copy HEX",
+                AutoButtonColor = false,
+                Parent = pickerFrame,
+            })
+            corner(copyBtn, 4)
+            copyBtn.MouseButton1Click:Connect(function()
+                Executor.setclipboard("#" .. picker.Value:ToHex():upper())
+                copyBtn.Text = "Copied!"
+                task.delay(1, function() copyBtn.Text = "Copy HEX" end)
+            end)
+
+            -- close button
+            local closeBtn = create("TextButton", {
+                BackgroundColor3 = theme.Element,
+                Position = UDim2.new(0.5, 4, 0, 144),
+                Size = UDim2.new(0.5, -12, 0, 20),
+                Font = Enum.Font.GothamBold,
+                TextSize = 10,
+                TextColor3 = theme.SubText,
+                Text = "Close",
+                AutoButtonColor = false,
+                Parent = pickerFrame,
+            })
+            corner(closeBtn, 4)
+
+            -- input callbacks
+            local function onRGBChange()
+                local r = math.clamp(tonumber(rInput.Text) or 0, 0, 255)
+                local g = math.clamp(tonumber(gInput.Text) or 0, 0, 255)
+                local b2 = math.clamp(tonumber(bInput.Text) or 0, 0, 255)
+                local c = Color3.fromRGB(r, g, b2)
+                h, s, v = Color3.toHSV(c)
                 updateColor(true)
-                hexInput.Text = "#" .. newColor:ToHex():upper()
+                hexInput.Text = "#" .. c:ToHex():upper()
             end
 
             local function onHexChange()
                 local hex = hexInput.Text:gsub("#", "")
                 if #hex == 6 then
-                    local success, newColor = pcall(Color3.fromHex, hex)
-                    if success then
-                        h, s, v = Color3.toHSV(newColor)
+                    local ok, c = pcall(Color3.fromHex, hex)
+                    if ok then
+                        h, s, v = Color3.toHSV(c)
                         updateColor(true)
-                        rInput.Text = math.floor(newColor.R * 255)
-                        gInput.Text = math.floor(newColor.G * 255)
-                        bInput.Text = math.floor(newColor.B * 255)
+                        rInput.Text = math.floor(c.R * 255)
+                        gInput.Text = math.floor(c.G * 255)
+                        bInput.Text = math.floor(c.B * 255)
                     end
                 end
             end
 
-            rInput.FocusLost:Connect(onInputChange)
-            gInput.FocusLost:Connect(onInputChange)
-            bInput.FocusLost:Connect(onInputChange)
+            rInput.FocusLost:Connect(onRGBChange)
+            gInput.FocusLost:Connect(onRGBChange)
+            bInput.FocusLost:Connect(onRGBChange)
             hexInput.FocusLost:Connect(onHexChange)
 
+            -- SV and hue dragging
             local svDrag, hueDrag = false, false
-            satVal.InputBegan:Connect(function(i)
-                if i.UserInputType == Enum.UserInputType.MouseButton1 then svDrag = true end
+            svCanvas.InputBegan:Connect(function(i)
+                if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+                    svDrag = true
+                end
             end)
             hueBar.InputBegan:Connect(function(i)
-                if i.UserInputType == Enum.UserInputType.MouseButton1 then hueDrag = true end
+                if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+                    hueDrag = true
+                end
             end)
             UserInputService.InputEnded:Connect(function(i)
-                if i.UserInputType == Enum.UserInputType.MouseButton1 then svDrag, hueDrag = false, false end
+                if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+                    svDrag, hueDrag = false, false
+                end
             end)
             UserInputService.InputChanged:Connect(function(i)
-                if i.UserInputType == Enum.UserInputType.MouseMovement then
+                if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
                     if svDrag then
-                        s = math.clamp((Mouse.X - satVal.AbsolutePosition.X) / satVal.AbsoluteSize.X, 0, 1)
-                        v = 1 - math.clamp((Mouse.Y - satVal.AbsolutePosition.Y) / satVal.AbsoluteSize.Y, 0, 1)
+                        s = math.clamp((Mouse.X - svCanvas.AbsolutePosition.X) / svCanvas.AbsoluteSize.X, 0, 1)
+                        v = 1 - math.clamp((Mouse.Y - svCanvas.AbsolutePosition.Y) / svCanvas.AbsoluteSize.Y, 0, 1)
                         updateColor()
                     elseif hueDrag then
                         h = math.clamp((Mouse.Y - hueBar.AbsolutePosition.Y) / hueBar.AbsoluteSize.Y, 0, 1)
@@ -2089,26 +2875,12 @@ function Scriptora:CreateWindow(opts)
                 end
             end)
 
-            local closeBtn = create("TextButton", {
-                BackgroundColor3 = theme.Element,
-                Position = UDim2.new(1, -50, 0, 6),
-                Size = UDim2.new(0, 44, 0, 18),
-                Font = Enum.Font.GothamBold,
-                TextSize = 10,
-                TextColor3 = theme.Text,
-                Text = "Close",
-                AutoButtonColor = false,
-                Parent = pickerFrame,
-            })
-            corner(closeBtn, 4)
-            W:themed(closeBtn, { BackgroundColor3 = "Element", TextColor3 = "Text" })
-
             local function togglePicker(state)
                 picker.Open = state
                 if picker.Open then
-                    tween(frame, 0.25, { Size = UDim2.new(1, 0, 0, 148) })
+                    tween(frame, 0.3, { Size = UDim2.new(1, 0, 0, 38 + 178) })
                 else
-                    tween(frame, 0.25, { Size = UDim2.new(1, 0, 0, 36) })
+                    tween(frame, 0.3, { Size = UDim2.new(1, 0, 0, 38) })
                 end
             end
 
@@ -2131,7 +2903,7 @@ function Scriptora:CreateWindow(opts)
         -- // LABEL / PARAGRAPH / DIVIDER
         -- ====================================================
         function tab:AddLabel(text)
-            local lbl = create("TextLabel", {
+            local lbl = W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, 0, 0, 18),
                 Font = Enum.Font.Gotham,
@@ -2140,7 +2912,7 @@ function Scriptora:CreateWindow(opts)
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Text = text or "",
                 Parent = page,
-            })
+            }), { TextColor3 = "SubText" })
             local label = { Frame = lbl }
             function label:Set(t) lbl.Text = t end
             return label
@@ -2148,39 +2920,40 @@ function Scriptora:CreateWindow(opts)
 
         function tab:AddParagraph(opts)
             opts = opts or {}
-            local title = opts.Title or "Paragraph"
-            local content = opts.Content or ""
+            local ptitle = opts.Title or "Paragraph"
+            local pcontent = opts.Content or ""
 
-            local frame = W:themed(create("Frame", {
+            local pframe = create("Frame", {
                 BackgroundColor3 = theme.Secondary,
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BorderSizePixel = 0,
                 Parent = page,
-            }), { BackgroundColor3 = "Secondary" })
-            corner(frame, 6)
-            W:themed(stroke(frame, theme.Border, 1), { Color = "Border" })
+            })
+            W:themed(pframe, { BackgroundColor3 = "Secondary" })
+            corner(pframe, 8)
+            W:themed(stroke(pframe, theme.Border, 1, 0.4), { Color = "Border" })
 
-            local pad = create("Frame", {
+            local ppad = create("Frame", {
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
-                Parent = frame,
+                Parent = pframe,
             })
-            padding(pad, 10)
+            padding(ppad, 12)
 
-            create("TextLabel", {
+            W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, 0, 0, 18),
                 Font = Enum.Font.GothamBold,
                 TextSize = 13,
                 TextColor3 = theme.Text,
                 TextXAlignment = Enum.TextXAlignment.Left,
-                Text = title,
-                Parent = pad,
-            })
+                Text = ptitle,
+                Parent = ppad,
+            }), { TextColor3 = "Text" })
 
-            create("TextLabel", {
+            W:themed(create("TextLabel", {
                 BackgroundTransparency = 1,
                 Position = UDim2.new(0, 0, 0, 22),
                 Size = UDim2.new(1, 0, 0, 0),
@@ -2190,22 +2963,22 @@ function Scriptora:CreateWindow(opts)
                 TextColor3 = theme.SubText,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 TextWrapped = true,
-                Text = content,
-                Parent = pad,
-            })
+                Text = pcontent,
+                Parent = ppad,
+            }), { TextColor3 = "SubText" })
 
-            registerElement(frame, title .. " " .. content, title)
-            return frame
+            registerElement(pframe, ptitle .. " " .. pcontent, ptitle)
+            return pframe
         end
 
         function tab:AddDivider()
-            return create("Frame", {
+            return W:themed(create("Frame", {
                 BackgroundColor3 = theme.Border,
                 BackgroundTransparency = 0.5,
                 Size = UDim2.new(1, 0, 0, 1),
                 BorderSizePixel = 0,
                 Parent = page,
-            })
+            }), { BackgroundColor3 = "Border" })
         end
 
         return tab
@@ -2219,9 +2992,7 @@ function Scriptora:CreateWindow(opts)
         if query == "" then
             for _, t in ipairs(W.Tabs) do
                 for _, c in ipairs(t.Page:GetChildren()) do
-                    if c:IsA("Frame") or c:IsA("TextLabel") then
-                        c.Visible = true
-                    end
+                    if c:IsA("Frame") or c:IsA("TextLabel") then c.Visible = true end
                 end
             end
             return
@@ -2237,20 +3008,19 @@ function Scriptora:CreateWindow(opts)
     function W:SaveConfig(name)
         name = name or W.ConfigName
         local data = {}
-        for k, v in pairs(Scriptora.Flags) do
-            if typeof(v) == "Color3" then
-                data[k] = { _t = "Color3", r = v.R, g = v.G, b = v.B }
-            elseif typeof(v) == "EnumItem" then
-                data[k] = { _t = "EnumItem", e = tostring(v.EnumType), n = v.Name }
-            elseif typeof(v) == "table" then
-                data[k] = { _t = "table", v = v }
+        for k, val in pairs(Scriptora.Flags) do
+            if typeof(val) == "Color3" then
+                data[k] = { _t = "Color3", r = val.R, g = val.G, b = val.B }
+            elseif typeof(val) == "EnumItem" then
+                data[k] = { _t = "EnumItem", e = tostring(val.EnumType), n = val.Name }
+            elseif typeof(val) == "table" then
+                data[k] = { _t = "table", v = val }
             else
-                data[k] = v
+                data[k] = val
             end
         end
         local ok, encoded = pcall(HttpService.JSONEncode, HttpService, data)
         if not ok then return false, encoded end
-
         Executor.makefolder(W.ConfigFolder)
         Executor.writefile(W.ConfigFolder .. "/" .. name .. ".json", encoded)
         return true
@@ -2263,15 +3033,15 @@ function Scriptora:CreateWindow(opts)
         local raw = Executor.readfile(path)
         local ok, data = pcall(HttpService.JSONDecode, HttpService, raw)
         if not ok then return false, data end
-        for k, v in pairs(data) do
-            if type(v) == "table" and v._t == "Color3" then
-                Scriptora.Flags[k] = Color3.new(v.r, v.g, v.b)
-            elseif type(v) == "table" and v._t == "EnumItem" then
-                Scriptora.Flags[k] = Enum[v.e:gsub("Enum%.", "")][v.n]
-            elseif type(v) == "table" and v._t == "table" then
-                Scriptora.Flags[k] = v.v
+        for k, val in pairs(data) do
+            if type(val) == "table" and val._t == "Color3" then
+                Scriptora.Flags[k] = Color3.new(val.r, val.g, val.b)
+            elseif type(val) == "table" and val._t == "EnumItem" then
+                Scriptora.Flags[k] = Enum[val.e:gsub("Enum%.", "")][val.n]
+            elseif type(val) == "table" and val._t == "table" then
+                Scriptora.Flags[k] = val.v
             else
-                Scriptora.Flags[k] = v
+                Scriptora.Flags[k] = val
             end
         end
         return true
@@ -2283,8 +3053,8 @@ function Scriptora:CreateWindow(opts)
         local files = Executor.listfiles(folder)
         local list = {}
         for _, f in ipairs(files) do
-            local name = f:match("([^/\\]+)%.json$")
-            if name then table.insert(list, name) end
+            local n = f:match("([^/\\]+)%.json$")
+            if n then table.insert(list, n) end
         end
         return list
     end
@@ -2292,21 +3062,24 @@ function Scriptora:CreateWindow(opts)
     -- ============================================================
     -- // THEME SWITCH
     -- ============================================================
-    function W:SetTheme(themeName)
-        local newTheme = Scriptora.Themes[themeName]
+    function W:SetTheme(tName)
+        local newTheme = Scriptora.Themes[tName]
         if not newTheme then return end
         W.CurrentTheme = newTheme
-        W.CurrentThemeName = themeName
+        W.CurrentThemeName = tName
+        theme = newTheme
 
         for _, item in ipairs(W.ThemedItems) do
-            if item.Inst.Parent then
+            if item.Inst and item.Inst.Parent then
                 for prop, key in pairs(item.Map) do
                     pcall(function()
-                        local val = newTheme[key]
+                        local val
                         if type(key) == "function" then
                             val = key(newTheme)
+                        else
+                            val = newTheme[key]
                         end
-                        item.Inst[prop] = val
+                        if val ~= nil then item.Inst[prop] = val end
                     end)
                 end
             end
@@ -2314,9 +3087,9 @@ function Scriptora:CreateWindow(opts)
 
         W:Notify({
             Title = "Theme",
-            Content = "Switched to " .. themeName .. ". Reload UI for full refresh.",
+            Content = "Switched to " .. tName,
             Type = "info",
-            Duration = 3,
+            Duration = 2.5,
         })
     end
 
@@ -2327,7 +3100,7 @@ function Scriptora:CreateWindow(opts)
         W.Visible = not W.Visible
         if W.Visible then
             main.Visible = true
-            tween(main, 0.3, { Size = size, BackgroundTransparency = 0 }, Enum.EasingStyle.Back)
+            tween(main, 0.35, { Size = size, BackgroundTransparency = 0 }, Enum.EasingStyle.Back)
         else
             tween(main, 0.25, { Size = UDim2.new(0, size.X.Offset, 0, 0), BackgroundTransparency = 1 })
             task.wait(0.25)
@@ -2349,8 +3122,8 @@ function Scriptora:CreateWindow(opts)
     -- ============================================================
     function W:Dialog(opts)
         opts = opts or {}
-        local title = opts.Title or "Dialog"
-        local content = opts.Content or ""
+        local dtitle = opts.Title or "Dialog"
+        local dcontent = opts.Content or ""
         local buttons = opts.Buttons or { { Text = "OK", Callback = function() end } }
 
         local overlay = create("Frame", {
@@ -2371,53 +3144,47 @@ function Scriptora:CreateWindow(opts)
             ZIndex = 51,
             Parent = overlay,
         })
-        corner(box, 8)
+        corner(box, 10)
         stroke(box, theme.Border, 1)
-        shadow(box, 0.4)
+        shadow(box, 0.35)
 
-        tween(box, 0.3, { Size = UDim2.new(0, 280, 0, 140), BackgroundTransparency = 0 }, Enum.EasingStyle.Back)
+        tween(box, 0.3, { Size = UDim2.new(0, 300, 0, 150), BackgroundTransparency = 0 }, Enum.EasingStyle.Back)
 
         create("TextLabel", {
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 12, 0, 12),
-            Size = UDim2.new(1, -24, 0, 18),
+            Position = UDim2.new(0, 16, 0, 14),
+            Size = UDim2.new(1, -32, 0, 18),
             Font = Enum.Font.GothamBold,
             TextSize = 14,
             TextColor3 = theme.Text,
             TextXAlignment = Enum.TextXAlignment.Left,
-            Text = title,
+            Text = dtitle,
             ZIndex = 52,
             Parent = box,
         })
         create("TextLabel", {
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 12, 0, 36),
-            Size = UDim2.new(1, -24, 0, 60),
+            Position = UDim2.new(0, 16, 0, 38),
+            Size = UDim2.new(1, -32, 0, 68),
             Font = Enum.Font.Gotham,
             TextSize = 12,
             TextColor3 = theme.SubText,
             TextXAlignment = Enum.TextXAlignment.Left,
             TextYAlignment = Enum.TextYAlignment.Top,
             TextWrapped = true,
-            Text = content,
+            Text = dcontent,
             ZIndex = 52,
             Parent = box,
         })
 
         local btnHolder = create("Frame", {
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 12, 1, -36),
-            Size = UDim2.new(1, -24, 0, 28),
+            Position = UDim2.new(0, 16, 1, -40),
+            Size = UDim2.new(1, -32, 0, 30),
             ZIndex = 52,
             Parent = box,
         })
-        create("UIListLayout", {
-            Padding = UDim.new(0, 6),
-            FillDirection = Enum.FillDirection.Horizontal,
-            HorizontalAlignment = Enum.HorizontalAlignment.Right,
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Parent = btnHolder,
-        })
+        listLayout(btnHolder, 8, Enum.FillDirection.Horizontal, Enum.HorizontalAlignment.Right)
 
         local function close()
             tween(overlay, 0.2, { BackgroundTransparency = 1 })
@@ -2426,8 +3193,8 @@ function Scriptora:CreateWindow(opts)
             overlay:Destroy()
         end
 
-        for i, b in ipairs(buttons) do
-            local btn = create("TextButton", {
+        for _, b in ipairs(buttons) do
+            local dbtn = create("TextButton", {
                 BackgroundColor3 = b.Primary and theme.Accent or theme.Element,
                 Size = UDim2.new(0, 80, 1, 0),
                 Font = Enum.Font.GothamBold,
@@ -2438,16 +3205,17 @@ function Scriptora:CreateWindow(opts)
                 ZIndex = 53,
                 Parent = btnHolder,
             })
-            corner(btn, 5)
-            btn.MouseButton1Click:Connect(function()
+            corner(dbtn, 6)
+            addRipple(dbtn, theme)
+            dbtn.MouseButton1Click:Connect(function()
                 if b.Callback then task.spawn(b.Callback) end
                 close()
             end)
-            btn.MouseEnter:Connect(function()
-                tween(btn, 0.15, { BackgroundColor3 = b.Primary and theme.AccentHover or theme.ElementHover })
+            dbtn.MouseEnter:Connect(function()
+                tween(dbtn, 0.15, { BackgroundColor3 = b.Primary and theme.AccentHover or theme.ElementHover })
             end)
-            btn.MouseLeave:Connect(function()
-                tween(btn, 0.15, { BackgroundColor3 = b.Primary and theme.Accent or theme.Element })
+            dbtn.MouseLeave:Connect(function()
+                tween(dbtn, 0.15, { BackgroundColor3 = b.Primary and theme.Accent or theme.Element })
             end)
         end
     end
@@ -2459,31 +3227,21 @@ end
 -- ============================================================
 -- // GLOBAL UTILITIES
 -- ============================================================
-function Scriptora:GetFlag(flag)
-    return Scriptora.Flags[flag]
-end
-
-function Scriptora:SetFlag(flag, value)
-    Scriptora.Flags[flag] = value
-end
+function Scriptora:GetFlag(flag)     return Scriptora.Flags[flag] end
+function Scriptora:SetFlag(flag, v)  Scriptora.Flags[flag] = v end
 
 function Scriptora:DestroyAll()
-    for _, w in ipairs(self.Windows) do
-        pcall(function() w:Destroy() end)
-    end
+    for _, w in ipairs(self.Windows) do pcall(function() w:Destroy() end) end
     self.Windows = {}
 end
 
-function Scriptora:GetExecutor()
-    return Executor.identifyexecutor()
-end
+function Scriptora:GetExecutor()     return Executor.identifyexecutor() end
+function Scriptora:GetThemes()       return Scriptora.Themes end
 
 -- ============================================================
--- // REGISTER GLOBALLY (so Example script can grab it)
+-- // REGISTER GLOBALLY
 -- ============================================================
-if getgenv then
-    getgenv().Scriptora = Scriptora
-end
+if getgenv then getgenv().Scriptora = Scriptora end
 _G.Scriptora = Scriptora
 shared.Scriptora = Scriptora
 
