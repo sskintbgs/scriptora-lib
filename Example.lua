@@ -1,5 +1,5 @@
 --[[
-    Scriptora Universal Hub (v9.0)
+    Scriptora Universal Hub (v9.0) - PATCHED v2
     "The Infinite Universal" — 100+ Features
 ]]
 
@@ -29,7 +29,7 @@ local Config = {
     },
     Visuals = {
         Enabled = false, RainbowESP = false, TeamCheck = true, NPCSupport = false,
-        BoxStyle = "Corners", -- "None", "Full", "Corners"
+        BoxStyle = "Corners",
         BoxFill = false, Names = true, Distance = true, Health = true, HealthText = false,
         Tracers = false, Skeletons = false, HeadCircles = false, Chams = false, LookLines = false,
         Compass = false, OutlineThickness = 1, TextSize = 13, TextFont = 2
@@ -37,7 +37,7 @@ local Config = {
     Colors = {
         PlayerColor = Color3.fromRGB(170, 100, 255),
         NPCColor = Color3.fromRGB(255, 255, 0),
-        TargetColor = Color3.fromRGB(255, 0, 0), -- New Target Highlight
+        TargetColor = Color3.fromRGB(255, 0, 0),
         FillColor = Color3.fromRGB(170, 100, 255),
         ChamsColor = Color3.fromRGB(255, 0, 255),
         FOVColor = Color3.fromRGB(255, 255, 255),
@@ -48,7 +48,7 @@ local Config = {
     },
     Misc = {
         WalkSpeed = 16, JumpPower = 50, Fly = false, FlySpeed = 50, NoClip = false, InfiniteJump = false,
-        SpinBot = false, SpinSpeed = 25, AntiAFK = true, ChatSpam = false, SpamText = "Scriptora Universal on top!",
+        SpinBot = false, SpinSpeed = 25, AntiAFK = true, ChatSpam = false, SpamText = "Scriptora Universal on top",
         CamFOV = 70, Hitbox = false, HitboxSize = 2, HitboxParts = {"Head"}, HitboxTeamCheck = true,
     }
 }
@@ -58,26 +58,47 @@ local CAPABILITIES = {
     Square = false,
     Circle = false,
     Line = false,
-    Text = false
+    Text = false,
+    Thickness = true,
+    Outline = true
 }
 
+-- Safe Capability Checker
 local function checkCapabilities()
+    if type(Drawing) ~= "table" and type(Drawing) ~= "userdata" then return end
+    if type(Drawing.new) ~= "function" then return end
+
     local types = {"Triangle", "Square", "Circle", "Line", "Text"}
     for _, t in ipairs(types) do
         local ok, obj = pcall(function() return Drawing.new(t) end)
-        if ok and (typeof(obj) == "userdata" or typeof(obj) == "table") then
+        if ok and obj and (typeof(obj) == "userdata" or typeof(obj) == "table") then
             CAPABILITIES[t] = true
-            obj:Remove()
+            
+            if t == "Line" or t == "Square" then
+                local tOk = pcall(function() obj.Thickness = 1 end)
+                if not tOk then CAPABILITIES.Thickness = false end
+                
+                local oOk = pcall(function() obj.Outline = true end)
+                if not oOk then CAPABILITIES.Outline = false end
+            end
+
+            if type(obj.Remove) == "function" then pcall(function() obj:Remove() end)
+            elseif type(obj.Destroy) == "function" then pcall(function() obj:Destroy() end) end
         end
     end
 end
 checkCapabilities()
 
-if not CAPABILITIES.Triangle then
-    Config.Visuals.Compass = false
+local function SafeDrawing(t)
+    if not CAPABILITIES[t] then return nil end
+    local ok, obj = pcall(function() return Drawing.new(t) end)
+    if ok and obj and (typeof(obj) == "userdata" or typeof(obj) == "table") then
+        return obj
+    end
+    return nil
 end
--- // Data Storage
-local FOVCircle = CAPABILITIES.Circle and Drawing.new("Circle") or nil
+
+local FOVCircle = SafeDrawing("Circle")
 local ESP_REGISTRY = {}
 local CONNECTIONS = {}
 local ALL_BONES = {
@@ -88,43 +109,110 @@ local ALL_BONES = {
     "RightUpperLeg", "RightLowerLeg", "RightFoot"
 }
 local AimbotTarget = nil
+local NPC_LIST = {}
+
+-- Background NPC Scanner
+task.spawn(function()
+    while task.wait(2) do
+        if Config.Visuals.NPCSupport or Config.Combat.NPCSupport or Config.Triggerbot.NPCSupport then
+            local list = {}
+            for _, v in ipairs(workspace:GetDescendants()) do
+                if v:IsA("Model") and v:FindFirstChild("Humanoid") and not Players:GetPlayerFromCharacter(v) then
+                    table.insert(list, v)
+                end
+            end
+            NPC_LIST = list
+        else
+            NPC_LIST = {}
+        end
+    end
+end)
+
+local function SafeRemove(item)
+    if not item then return end
+    if type(item) == "table" or type(item) == "userdata" then
+        pcall(function()
+            if item.Remove then item:Remove()
+            elseif item.Destroy then item:Destroy() end
+        end)
+    end
+end
 
 -- // ESP Class
 local function createEntity(ent)
     if ESP_REGISTRY[ent] then return end
     
     local d = {
-        Box = CAPABILITIES.Square and Drawing.new("Square") or nil,
-        BoxFill = CAPABILITIES.Square and Drawing.new("Square") or nil,
+        Box = SafeDrawing("Square"),
+        BoxFill = SafeDrawing("Square"),
         Corners = {
-            CAPABILITIES.Line and Drawing.new("Line") or nil, CAPABILITIES.Line and Drawing.new("Line") or nil, CAPABILITIES.Line and Drawing.new("Line") or nil, CAPABILITIES.Line and Drawing.new("Line") or nil,
-            CAPABILITIES.Line and Drawing.new("Line") or nil, CAPABILITIES.Line and Drawing.new("Line") or nil, CAPABILITIES.Line and Drawing.new("Line") or nil, CAPABILITIES.Line and Drawing.new("Line") or nil
+            SafeDrawing("Line"), SafeDrawing("Line"), SafeDrawing("Line"), SafeDrawing("Line"),
+            SafeDrawing("Line"), SafeDrawing("Line"), SafeDrawing("Line"), SafeDrawing("Line")
         },
         Skeleton = {},
-        Name = CAPABILITIES.Text and Drawing.new("Text") or nil,
-        HealthT = CAPABILITIES.Text and Drawing.new("Text") or nil,
-        Tracer = CAPABILITIES.Line and Drawing.new("Line") or nil,
-        HealthBar = CAPABILITIES.Line and Drawing.new("Line") or nil,
-        HealthBack = CAPABILITIES.Line and Drawing.new("Line") or nil,
-        HeadC = CAPABILITIES.Circle and Drawing.new("Circle") or nil,
-        LookL = CAPABILITIES.Line and Drawing.new("Line") or nil,
-        Arrow = CAPABILITIES.Triangle and Drawing.new("Triangle") or nil,
+        Name = SafeDrawing("Text"),
+        HealthT = SafeDrawing("Text"),
+        Tracer = SafeDrawing("Line"),
+        HealthBar = SafeDrawing("Line"),
+        HealthBack = SafeDrawing("Line"),
+        HeadC = SafeDrawing("Circle"),
+        LookL = SafeDrawing("Line"),
+        Arrow = SafeDrawing("Triangle"),
     }
     
-    -- Setup Defaults
-    if d.Box then d.Box.Thickness = 1; d.Box.Outline = true end
-    if d.BoxFill then d.BoxFill.Thickness = 0; d.BoxFill.Filled = true; d.BoxFill.Transparency = 0.4 end
-    for _, l in ipairs(d.Corners) do if typeof(l) ~= "number" then l.Thickness = 1.5; l.Outline = true end end
-    for i=1, 15 do table.insert(d.Skeleton, CAPABILITIES.Line and Drawing.new("Line") or nil) end
-    for _, l in ipairs(d.Skeleton) do if typeof(l) ~= "number" then l.Thickness = 1.5; l.Outline = true end end
-    if d.Name then d.Name.Center = true; d.Name.Outline = true end
-    if d.HealthT then d.HealthT.Outline = true end
-    if d.Tracer then d.Tracer.Thickness = 1; d.Tracer.Outline = true end
-    if d.HealthBar then d.HealthBar.Thickness = 2; d.HealthBar.Outline = true end
-    if d.HealthBack then d.HealthBack.Thickness = 3; d.HealthBack.Color = Color3.new(0,0,0); d.HealthBack.Transparency = 0.5 end
-    if d.HeadC then d.HeadC.Thickness = 1; d.HeadC.Outline = true end
-    if d.LookL then d.LookL.Thickness = 1; d.LookL.Outline = true end
-    if d.Arrow then d.Arrow.Filled = true; d.Arrow.Thickness = 0 end
+    for i=1, 15 do table.insert(d.Skeleton, SafeDrawing("Line")) end
+    
+    if d.Box then 
+        if CAPABILITIES.Thickness then pcall(function() d.Box.Thickness = 1 end) end
+        if CAPABILITIES.Outline then pcall(function() d.Box.Outline = true end) end
+    end
+    if d.BoxFill then 
+        if CAPABILITIES.Thickness then pcall(function() d.BoxFill.Thickness = 0 end) end
+        pcall(function() d.BoxFill.Filled = true; d.BoxFill.Transparency = 0.4 end) 
+    end
+    for _, l in ipairs(d.Corners) do 
+        if l then 
+            if CAPABILITIES.Thickness then pcall(function() l.Thickness = 1.5 end) end
+            if CAPABILITIES.Outline then pcall(function() l.Outline = true end) end
+        end 
+    end
+    for _, l in ipairs(d.Skeleton) do 
+        if l then 
+            if CAPABILITIES.Thickness then pcall(function() l.Thickness = 1.5 end) end
+            if CAPABILITIES.Outline then pcall(function() l.Outline = true end) end
+        end 
+    end
+    if d.Name then 
+        pcall(function() d.Name.Center = true end)
+        if CAPABILITIES.Outline then pcall(function() d.Name.Outline = true end) end
+    end
+    if d.HealthT then 
+        if CAPABILITIES.Outline then pcall(function() d.HealthT.Outline = true end) end
+    end
+    if d.Tracer then 
+        if CAPABILITIES.Thickness then pcall(function() d.Tracer.Thickness = 1 end) end
+        if CAPABILITIES.Outline then pcall(function() d.Tracer.Outline = true end) end
+    end
+    if d.HealthBar then 
+        if CAPABILITIES.Thickness then pcall(function() d.HealthBar.Thickness = 2 end) end
+        if CAPABILITIES.Outline then pcall(function() d.HealthBar.Outline = true end) end
+    end
+    if d.HealthBack then 
+        if CAPABILITIES.Thickness then pcall(function() d.HealthBack.Thickness = 3 end) end
+        pcall(function() d.HealthBack.Color = Color3.new(0,0,0); d.HealthBack.Transparency = 0.5 end)
+    end
+    if d.HeadC then 
+        if CAPABILITIES.Thickness then pcall(function() d.HeadC.Thickness = 1 end) end
+        if CAPABILITIES.Outline then pcall(function() d.HeadC.Outline = true end) end
+    end
+    if d.LookL then 
+        if CAPABILITIES.Thickness then pcall(function() d.LookL.Thickness = 1 end) end
+        if CAPABILITIES.Outline then pcall(function() d.LookL.Outline = true end) end
+    end
+    if d.Arrow then 
+        pcall(function() d.Arrow.Filled = true end)
+        if CAPABILITIES.Thickness then pcall(function() d.Arrow.Thickness = 0 end) end
+    end
     
     ESP_REGISTRY[ent] = d
 end
@@ -132,11 +220,17 @@ end
 local function removeEntity(ent)
     local d = ESP_REGISTRY[ent]
     if d then
-        for _, obj in pairs(d) do
-            if type(obj) == "table" then for _, l in pairs(obj) do l:Remove() end
-            elseif obj.Remove then obj:Remove() end
+        for key, obj in pairs(d) do
+            if key == "Corners" or key == "Skeleton" then 
+                for _, l in pairs(obj) do SafeRemove(l) end
+            else
+                SafeRemove(obj)
+            end
         end
         ESP_REGISTRY[ent] = nil
+    end
+    if ent and ent:FindFirstChild("ScriptoraHighlight") then
+        pcall(function() ent.ScriptoraHighlight:Destroy() end)
     end
 end
 
@@ -162,7 +256,7 @@ local function getTarget()
     local candidates = {}
     for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer and p.Character then table.insert(candidates, p.Character) end end
     if Config.Combat.NPCSupport then
-        for _, v in ipairs(workspace:GetDescendants()) do if v:IsA("Model") and v:FindFirstChild("Humanoid") and not Players:GetPlayerFromCharacter(v) then table.insert(candidates, v) end end
+        for _, v in ipairs(NPC_LIST) do if v.Parent then table.insert(candidates, v) end end
     end
 
     for _, char in ipairs(candidates) do
@@ -190,7 +284,6 @@ local function getTarget()
 end
 
 -- // UI Creation
--- // UI Creation
 Scriptora:CreateKeySystem({
     Name = "Scriptora Universal",
     Method = "Hardcoded",
@@ -199,8 +292,8 @@ Scriptora:CreateKeySystem({
     KeyFolder = "Scriptora",
     OnValidated = function()
         local Hub = Scriptora:CreateWindow({
-            Name      = "Scriptora Universal v9.0",
-            SubTitle  = "The Infinite Universal",
+            Name      = "Scriptora Universal",
+            SubTitle  = "The best Utility",
             Theme     = "Amethyst",
             Size      = UDim2.new(0, 660, 0, 500),
             ToggleKey = Enum.KeyCode.RightShift,
@@ -229,23 +322,17 @@ Scriptora:CreateKeySystem({
         CombatTab:AddToggle({ Title = "Enabled", Callback = function(v) Config.Misc.Hitbox = v end })
         CombatTab:AddToggle({ Title = "Team Check", Default = true, Callback = function(v) Config.Misc.HitboxTeamCheck = v end })
         CombatTab:AddSlider({ Title = "Hitbox Size", Min = 2, Max = 200, Default = 2, Callback = function(v) Config.Misc.HitboxSize = v end })
-        CombatTab:AddDropdown({ 
-            Title = "Target Parts", 
-            Options = ALL_BONES, 
-            MultiSelect = true, 
-            Default = {"Head"}, 
-            Callback = function(v) 
-                Config.Misc.HitboxParts = v 
-            end 
-        })
+        CombatTab:AddDropdown({ Title = "Target Parts", Options = ALL_BONES, MultiSelect = true, Default = {"Head"}, Callback = function(v) Config.Misc.HitboxParts = v end })
 
         CombatTab:AddSection("Triggerbot")
         CombatTab:AddToggle({ Title = "Triggerbot Enabled", Callback = function(v) Config.Triggerbot.Enabled = v end })
         CombatTab:AddSlider({ Title = "Trigger Delay (ms)", Min = 0, Max = 500, Default = 0, Callback = function(v) Config.Triggerbot.Delay = v/1000 end })
 
-        CombatTab:AddSection("FOV Circle")
-        CombatTab:AddToggle({ Title = "Show FOV", Default = true, Callback = function(v) Config.Combat.ShowFOV = v end })
-        CombatTab:AddSlider({ Title = "Radius", Min = 10, Max = 1000, Default = 100, Callback = function(v) Config.Combat.FOV = v end })
+        if CAPABILITIES.Circle then
+            CombatTab:AddSection("FOV Circle")
+            CombatTab:AddToggle({ Title = "Show FOV", Default = true, Callback = function(v) Config.Combat.ShowFOV = v end })
+            CombatTab:AddSlider({ Title = "Radius", Min = 10, Max = 1000, Default = 100, Callback = function(v) Config.Combat.FOV = v end })
+        end
 
         -- // VISUALS
         VisualsTab:AddSection("Main")
@@ -253,37 +340,63 @@ Scriptora:CreateKeySystem({
         VisualsTab:AddToggle({ Title = "Team Check", Default = true, Callback = function(v) Config.Visuals.TeamCheck = v end })
         VisualsTab:AddToggle({ Title = "NPC Support", Callback = function(v) Config.Visuals.NPCSupport = v end })
 
-        VisualsTab:AddSection("Box Styles")
-        VisualsTab:AddDropdown({ Title = "Style", Options = {"None", "Full", "Corners"}, Default = "Corners", Callback = function(v) Config.Visuals.BoxStyle = v end })
-        VisualsTab:AddToggle({ Title = "Box Filling", Callback = function(v) Config.Visuals.BoxFill = v end })
+        if CAPABILITIES.Square or CAPABILITIES.Line then
+            VisualsTab:AddSection("Box Styles")
+            local styles = {"None"}
+            if CAPABILITIES.Square then table.insert(styles, "Full") end
+            if CAPABILITIES.Line then table.insert(styles, "Corners") end
+            VisualsTab:AddDropdown({ Title = "Style", Options = styles, Default = CAPABILITIES.Line and "Corners" or (CAPABILITIES.Square and "Full" or "None"), Callback = function(v) Config.Visuals.BoxStyle = v end })
+            if CAPABILITIES.Square then
+                VisualsTab:AddToggle({ Title = "Box Filling", Callback = function(v) Config.Visuals.BoxFill = v end })
+            end
+        end
 
-        VisualsTab:AddSection("Advanced Visuals")
-        VisualsTab:AddToggle({ Title = "Skeletons", Callback = function(v) Config.Visuals.Skeletons = v end })
-        VisualsTab:AddToggle({ Title = "Chams", Callback = function(v) Config.Visuals.Chams = v end })
-        VisualsTab:AddToggle({ Title = "Head Circles", Callback = function(v) Config.Visuals.HeadCircles = v end })
-        VisualsTab:AddToggle({ Title = "Look Lines", Callback = function(v) Config.Visuals.LookLines = v end })
-        VisualsTab:AddToggle({ 
-            Title = "Compass", 
-            Default = false,
-            Callback = function(v) 
-                if not CAPABILITIES.Triangle then 
-                    Scriptora:Notify({ Title = "Unsupported", Content = "Your executor does not support Triangle drawing for Compass.", Type = "warning" })
-                    return 
-                end
-                Config.Visuals.Compass = v 
-            end 
-        })
+        if CAPABILITIES.Line or CAPABILITIES.Circle or CAPABILITIES.Triangle then
+            VisualsTab:AddSection("Advanced Visuals")
+            if CAPABILITIES.Line then
+                VisualsTab:AddToggle({ Title = "Skeletons", Callback = function(v) Config.Visuals.Skeletons = v end })
+            end
+            VisualsTab:AddToggle({ Title = "Chams", Callback = function(v) Config.Visuals.Chams = v end })
+            if CAPABILITIES.Circle then
+                VisualsTab:AddToggle({ Title = "Head Circles", Callback = function(v) Config.Visuals.HeadCircles = v end })
+            end
+            if CAPABILITIES.Line then
+                VisualsTab:AddToggle({ Title = "Look Lines", Callback = function(v) Config.Visuals.LookLines = v end })
+            end
+            if CAPABILITIES.Triangle then
+                VisualsTab:AddToggle({ Title = "Compass", Default = false, Callback = function(v) Config.Visuals.Compass = v end })
+            end
+        else
+            VisualsTab:AddSection("Advanced Visuals")
+            VisualsTab:AddToggle({ Title = "Chams", Callback = function(v) Config.Visuals.Chams = v end })
+        end
 
-        VisualsTab:AddSection("Information")
-        VisualsTab:AddToggle({ Title = "Names", Default = true, Callback = function(v) Config.Visuals.Names = v end })
-        VisualsTab:AddToggle({ Title = "Health Bars", Default = true, Callback = function(v) Config.Visuals.Health = v end })
-        VisualsTab:AddToggle({ Title = "Health %", Callback = function(v) Config.Visuals.HealthText = v end })
-        VisualsTab:AddToggle({ Title = "Distance Labels", Default = true, Callback = function(v) Config.Visuals.Distance = v end })
-        VisualsTab:AddToggle({ Title = "Snaplines", Callback = function(v) Config.Visuals.Tracers = v end })
+        if CAPABILITIES.Text or CAPABILITIES.Line then
+            VisualsTab:AddSection("Information")
+            if CAPABILITIES.Text then
+                VisualsTab:AddToggle({ Title = "Names", Default = true, Callback = function(v) Config.Visuals.Names = v end })
+            end
+            if CAPABILITIES.Line then
+                VisualsTab:AddToggle({ Title = "Health Bars", Default = true, Callback = function(v) Config.Visuals.Health = v end })
+            end
+            if CAPABILITIES.Text then
+                VisualsTab:AddToggle({ Title = "Health %", Callback = function(v) Config.Visuals.HealthText = v end })
+                VisualsTab:AddToggle({ Title = "Distance Labels", Default = true, Callback = function(v) Config.Visuals.Distance = v end })
+            end
+            if CAPABILITIES.Line then
+                VisualsTab:AddToggle({ Title = "Snaplines", Callback = function(v) Config.Visuals.Tracers = v end })
+            end
+        end
 
-        VisualsTab:AddSection("Style Settings")
-        VisualsTab:AddSlider({ Title = "Text Size", Min = 10, Max = 25, Default = 13, Callback = function(v) Config.Visuals.TextSize = v end })
-        VisualsTab:AddSlider({ Title = "Outline Boldness", Min = 1, Max = 5, Default = 1, Callback = function(v) Config.Visuals.OutlineThickness = v end })
+        if CAPABILITIES.Text or CAPABILITIES.Thickness then
+            VisualsTab:AddSection("Style Settings")
+            if CAPABILITIES.Text then
+                VisualsTab:AddSlider({ Title = "Text Size", Min = 10, Max = 25, Default = 13, Callback = function(v) Config.Visuals.TextSize = v end })
+            end
+            if CAPABILITIES.Thickness then
+                VisualsTab:AddSlider({ Title = "Outline Boldness", Min = 1, Max = 5, Default = 1, Callback = function(v) Config.Visuals.OutlineThickness = v end })
+            end
+        end
 
         -- // COLORS
         ColorsTab:AddSection("ESP Colors")
@@ -292,10 +405,10 @@ Scriptora:CreateKeySystem({
         ColorsTab:AddColorPicker({ Title = "Current Target", Default = Config.Colors.TargetColor, Callback = function(v) Config.Colors.TargetColor = v end })
         ColorsTab:AddColorPicker({ Title = "Box Fill", Default = Config.Colors.FillColor, Callback = function(v) Config.Colors.FillColor = v end })
         ColorsTab:AddColorPicker({ Title = "Chams Glow", Default = Config.Colors.ChamsColor, Callback = function(v) Config.Colors.ChamsColor = v end })
-        ColorsTab:AddColorPicker({ Title = "Compass Color", Default = Config.Colors.CompassColor, Callback = function(v) Config.Colors.CompassColor = v end })
+        if CAPABILITIES.Triangle then ColorsTab:AddColorPicker({ Title = "Compass Color", Default = Config.Colors.CompassColor, Callback = function(v) Config.Colors.CompassColor = v end }) end
         ColorsTab:AddSection("Indicator Colors")
         ColorsTab:AddToggle({ Title = "Rainbow Visuals", Callback = function(v) Config.Visuals.RainbowESP = v end })
-        ColorsTab:AddColorPicker({ Title = "FOV Circle", Default = Config.Colors.FOVColor, Callback = function(v) Config.Colors.FOVColor = v end })
+        if CAPABILITIES.Circle then ColorsTab:AddColorPicker({ Title = "FOV Circle", Default = Config.Colors.FOVColor, Callback = function(v) Config.Colors.FOVColor = v end }) end
 
         -- // MISC
         MiscTab:AddSection("Humanoid Control")
@@ -337,16 +450,32 @@ Scriptora:CreateKeySystem({
         SettingsTab:AddDropdown({ Title = "UI Theme", Options = themes, Default = "Amethyst", Callback = function(v) Hub:SetTheme(v) end })
         SettingsTab:AddKeybind({ Title = "Toggle UI", Default = Enum.KeyCode.RightShift, Callback = function() Hub:Toggle() end })
         SettingsTab:AddButton({ Title = "Unload Script", Callback = function() 
-            Hub:Destroy(); FOVCircle:Remove(); for _, d in pairs(ESP_REGISTRY) do for _, obj in pairs(d) do if type(obj) == "table" then for _, l in pairs(obj) do l:Remove() end else obj:Remove() end end end
+            Hub:Destroy(); SafeRemove(FOVCircle)
+            for ent, _ in pairs(ESP_REGISTRY) do removeEntity(ent) end
+            for _, p in ipairs(Players:GetPlayers()) do if p.Character then removeEntity(p.Character) end end
+            for _, v in ipairs(workspace:GetDescendants()) do if v:IsA("Model") and v:FindFirstChild("Humanoid") then removeEntity(v) end end
             for _, c in pairs(CONNECTIONS) do c:Disconnect() end 
         end })
 
         -- // RENDERER
+        local function hideElements(d, exemptKey)
+            for key, obj in pairs(d) do
+                if key == exemptKey then continue end
+                if key == "Corners" or key == "Skeleton" then
+                    for _, l in pairs(obj) do 
+                        if l and (type(l) == "table" or type(l) == "userdata") then pcall(function() l.Visible = false end) end 
+                    end
+                elseif obj and (type(obj) == "table" or type(obj) == "userdata") then
+                    pcall(function() obj.Visible = false end)
+                end
+            end
+        end
+
         local function renderESP(char)
             createEntity(char); local d = ESP_REGISTRY[char]; local hum = char:FindFirstChild("Humanoid"); local hrp = char:FindFirstChild("HumanoidRootPart")
             
             if not (hum and hrp and hum.Health > 0 and char.Parent) then
-                for _, obj in pairs(d) do if type(obj) == "table" then for _, l in pairs(obj) do l.Visible = false end else obj.Visible = false end end
+                hideElements(d)
                 if char:FindFirstChild("ScriptoraHighlight") then char.ScriptoraHighlight:Destroy() end
                 return
             end
@@ -362,62 +491,69 @@ Scriptora:CreateKeySystem({
                 local col = Config.Visuals.RainbowESP and Color3.fromHSV((tick()*0.5)%1, 1, 1) or (isTarget and Config.Colors.TargetColor or (p and Config.Colors.PlayerColor or Config.Colors.NPCColor))
                 
                 if vis then
-                    d.Arrow.Visible = false
+                    if d.Arrow then pcall(function() d.Arrow.Visible = false end) end
                     local dist = (Camera.CFrame.Position - hrp.Position).Magnitude
                     local scale = (1 / dist) * 1000; local w, h = 2.4 * scale, 4.2 * scale
                     local x, y = pos.X - w/2, pos.Y - h/2
                     
-                    d.Box.Visible = Config.Visuals.BoxStyle == "Full"; d.Box.Size = Vector2.new(w, h); d.Box.Position = Vector2.new(x, y); d.Box.Color = col
-                    d.BoxFill.Visible = Config.Visuals.BoxFill; d.BoxFill.Size = Vector2.new(w, h); d.BoxFill.Position = Vector2.new(x, y); d.BoxFill.Color = Config.Colors.FillColor
+                    if d.Box then pcall(function() d.Box.Visible = Config.Visuals.BoxStyle == "Full"; d.Box.Size = Vector2.new(w, h); d.Box.Position = Vector2.new(x, y); d.Box.Color = col end) end
+                    if d.BoxFill then pcall(function() d.BoxFill.Visible = Config.Visuals.BoxFill; d.BoxFill.Size = Vector2.new(w, h); d.BoxFill.Position = Vector2.new(x, y); d.BoxFill.Color = Config.Visuals.RainbowESP and col or Config.Colors.FillColor end) end
                     
-                    if Config.Visuals.BoxStyle == "Corners" then
+                    if Config.Visuals.BoxStyle == "Corners" and d.Corners and d.Corners[1] then
                         local cl = w/4; local c = d.Corners
-                        c[1].From = Vector2.new(x, y); c[1].To = Vector2.new(x + cl, y)
-                        c[2].From = Vector2.new(x, y); c[2].To = Vector2.new(x, y + cl)
-                        c[3].From = Vector2.new(x + w, y); c[3].To = Vector2.new(x + w - cl, y)
-                        c[4].From = Vector2.new(x + w, y); c[4].To = Vector2.new(x + w, y + cl)
-                        c[5].From = Vector2.new(x, y + h); c[5].To = Vector2.new(x + cl, y + h)
-                        c[6].From = Vector2.new(x, y + h); c[6].To = Vector2.new(x, y + h - cl)
-                        c[7].From = Vector2.new(x + w, y + h); c[7].To = Vector2.new(x + w - cl, y + h)
-                        c[8].From = Vector2.new(x + w, y + h); c[8].To = Vector2.new(x + w, y + h - cl)
-                        for _, l in ipairs(c) do l.Visible = true; l.Color = col; l.Thickness = Config.Visuals.OutlineThickness + 0.5 end
-                    else for _, l in ipairs(d.Corners) do l.Visible = false end end
+                        pcall(function() c[1].From = Vector2.new(x, y); c[1].To = Vector2.new(x + cl, y) end)
+                        pcall(function() c[2].From = Vector2.new(x, y); c[2].To = Vector2.new(x, y + cl) end)
+                        pcall(function() c[3].From = Vector2.new(x + w, y); c[3].To = Vector2.new(x + w - cl, y) end)
+                        pcall(function() c[4].From = Vector2.new(x + w, y); c[4].To = Vector2.new(x + w, y + cl) end)
+                        pcall(function() c[5].From = Vector2.new(x, y + h); c[5].To = Vector2.new(x + cl, y + h) end)
+                        pcall(function() c[6].From = Vector2.new(x, y + h); c[6].To = Vector2.new(x, y + h - cl) end)
+                        pcall(function() c[7].From = Vector2.new(x + w, y + h); c[7].To = Vector2.new(x + w - cl, y + h) end)
+                        pcall(function() c[8].From = Vector2.new(x + w, y + h); c[8].To = Vector2.new(x + w, y + h - cl) end)
+                        for _, l in ipairs(c) do if l then pcall(function() l.Visible = true; l.Color = col; if CAPABILITIES.Thickness then l.Thickness = Config.Visuals.OutlineThickness + 0.5 end end) end end
+                    else 
+                        if d.Corners then for _, l in ipairs(d.Corners) do if l then pcall(function() l.Visible = false end) end end end 
+                    end
 
-                    d.Name.Visible = Config.Visuals.Names; d.Name.Text = (p and p.DisplayName or char.Name)
-                    if Config.Visuals.Distance then d.Name.Text = d.Name.Text .. " [" .. math.floor(dist) .. "m]" end
-                    d.Name.Position = Vector2.new(pos.X, y - 16); d.Name.Color = Color3.new(1,1,1); d.Name.Size = Config.Visuals.TextSize
+                    if d.Name then
+                        pcall(function()
+                            d.Name.Visible = Config.Visuals.Names; d.Name.Text = (p and p.DisplayName or char.Name)
+                            if Config.Visuals.Distance then d.Name.Text = d.Name.Text .. " [" .. math.floor(dist) .. "m]" end
+                            d.Name.Position = Vector2.new(pos.X, y - 16); d.Name.Color = Color3.new(1,1,1); d.Name.Size = Config.Visuals.TextSize
+                        end)
+                    end
                     
                     local hSize = (h * (hum.Health/hum.MaxHealth))
-                    d.HealthBack.Visible = Config.Visuals.Health; d.HealthBack.From = Vector2.new(x - 6, y + h); d.HealthBack.To = Vector2.new(x - 6, y)
-                    d.HealthBar.Visible = Config.Visuals.Health; d.HealthBar.From = Vector2.new(x - 6, y + h); d.HealthBar.To = Vector2.new(x - 6, y + h - hSize); d.HealthBar.Color = Color3.new(1-hum.Health/hum.MaxHealth, hum.Health/hum.MaxHealth, 0)
-                    d.HealthT.Visible = Config.Visuals.HealthText; d.HealthT.Text = math.floor(hum.Health).."%"; d.HealthT.Position = Vector2.new(x - 30, y + h - hSize - 7); d.HealthT.Color = d.HealthBar.Color; d.HealthT.Size = Config.Visuals.TextSize - 1
+                    if d.HealthBack then pcall(function() d.HealthBack.Visible = Config.Visuals.Health; d.HealthBack.From = Vector2.new(x - 6, y + h); d.HealthBack.To = Vector2.new(x - 6, y) end) end
+                    if d.HealthBar then pcall(function() d.HealthBar.Visible = Config.Visuals.Health; d.HealthBar.From = Vector2.new(x - 6, y + h); d.HealthBar.To = Vector2.new(x - 6, y + h - hSize); d.HealthBar.Color = Color3.new(1-hum.Health/hum.MaxHealth, hum.Health/hum.MaxHealth, 0) end) end
+                    if d.HealthT then pcall(function() d.HealthT.Visible = Config.Visuals.HealthText; d.HealthT.Text = math.floor(hum.Health).."%"; d.HealthT.Position = Vector2.new(x - 30, y + h - hSize - 7); d.HealthT.Color = d.HealthBar and d.HealthBar.Color or Color3.new(0,1,0); d.HealthT.Size = Config.Visuals.TextSize - 1 end) end
 
-                    d.Tracer.Visible = Config.Visuals.Tracers; d.Tracer.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y); d.Tracer.To = Vector2.new(pos.X, y + h); d.Tracer.Color = col
+                    if d.Tracer then pcall(function() d.Tracer.Visible = Config.Visuals.Tracers; d.Tracer.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y); d.Tracer.To = Vector2.new(pos.X, y + h); d.Tracer.Color = col end) end
                     
                     local head = char:FindFirstChild("Head")
-                    if Config.Visuals.HeadCircles and head then
+                    if Config.Visuals.HeadCircles and head and d.HeadC then
                         local hpos, hv = Camera:WorldToViewportPoint(head.Position)
-                        d.HeadC.Visible = hv; d.HeadC.Position = Vector2.new(hpos.X, hpos.Y); d.HeadC.Radius = (scale * 0.45); d.HeadC.Color = col
-                    else d.HeadC.Visible = false end
+                        pcall(function() d.HeadC.Visible = hv; d.HeadC.Position = Vector2.new(hpos.X, hpos.Y); d.HeadC.Radius = (scale * 0.45); d.HeadC.Color = col end)
+                    elseif d.HeadC then pcall(function() d.HeadC.Visible = false end) end
 
-                    if Config.Visuals.LookLines and head then
+                    if Config.Visuals.LookLines and head and d.LookL then
                         local hpos, hv = Camera:WorldToViewportPoint(head.Position)
                         local lookPos, lv = Camera:WorldToViewportPoint(head.Position + head.CFrame.LookVector * 10)
-                        d.LookL.Visible = hv and lv; d.LookL.From = Vector2.new(hpos.X, hpos.Y); d.LookL.To = Vector2.new(lookPos.X, lookPos.Y); d.LookL.Color = col
-                    else d.LookL.Visible = false end
+                        pcall(function() d.LookL.Visible = hv and lv; d.LookL.From = Vector2.new(hpos.X, hpos.Y); d.LookL.To = Vector2.new(lookPos.X, lookPos.Y); d.LookL.Color = col end)
+                    elseif d.LookL then pcall(function() d.LookL.Visible = false end) end
 
-                    if Config.Visuals.Skeletons then
+                    if Config.Visuals.Skeletons and d.Skeleton and #d.Skeleton > 0 then
                         local j = {} for _, n in ipairs(ALL_BONES) do local v = char:FindFirstChild(n); if v then local p, o = Camera:WorldToViewportPoint(v.Position); if o then j[n] = Vector2.new(p.X, p.Y) end end end
                         local pairs = {{"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"}, {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"}, {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"}, {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"}, {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}}
-                        for i, p in ipairs(pairs) do local l = d.Skeleton[i]; if j[p[1]] and j[p[2]] then l.From = j[p[1]]; l.To = j[p[2]]; l.Visible = true; l.Color = col else l.Visible = false end end
-                    else for _, l in ipairs(d.Skeleton) do l.Visible = false end end
+                        for i, pair in ipairs(pairs) do local l = d.Skeleton[i]; if l then if j[pair[1]] and j[pair[2]] then pcall(function() l.From = j[pair[1]]; l.To = j[pair[2]]; l.Visible = true; l.Color = col end) else pcall(function() l.Visible = false end) end end end
+                    elseif d.Skeleton then for _, l in ipairs(d.Skeleton) do if l then pcall(function() l.Visible = false end) end end end
 
                     if Config.Visuals.Chams then
-                        local h = char:FindFirstChild("ScriptoraHighlight") or Instance.new("Highlight", char)
-                        h.Name = "ScriptoraHighlight"; h.FillColor = Config.Colors.ChamsColor; h.OutlineColor = Color3.new(1,1,1); h.FillTransparency = 0.5
+                        local h_obj = char:FindFirstChild("ScriptoraHighlight") or Instance.new("Highlight", char)
+                        h_obj.Name = "ScriptoraHighlight"
+                        h_obj.FillColor = Config.Visuals.RainbowESP and col or Config.Colors.ChamsColor
+                        h_obj.OutlineColor = Color3.new(1,1,1); h_obj.FillTransparency = 0.5
                     elseif char:FindFirstChild("ScriptoraHighlight") then char.ScriptoraHighlight:Destroy() end
                 else
-                    -- Compass
                     if Config.Visuals.Compass and d.Arrow then
                         local screenCenter = Camera.ViewportSize / 2
                         local dir = (hrp.Position - Camera.CFrame.Position).Unit
@@ -428,12 +564,12 @@ Scriptora:CreateKeySystem({
                         local p1 = arrowPos + Vector2.new(math.cos(finalAngle), math.sin(finalAngle)) * 15
                         local p2 = arrowPos + Vector2.new(math.cos(finalAngle + math.rad(140)), math.sin(finalAngle + math.rad(140))) * 15
                         local p3 = arrowPos + Vector2.new(math.cos(finalAngle - math.rad(140)), math.sin(finalAngle - math.rad(140))) * 15
-                        d.Arrow.Visible = true; d.Arrow.PointA = p1; d.Arrow.PointB = p2; d.Arrow.PointC = p3; d.Arrow.Color = Config.Colors.CompassColor
-                    elseif d.Arrow then d.Arrow.Visible = false end
-                    for _, obj in pairs(d) do if obj ~= d.Arrow then if type(obj) == "table" then for _, l in pairs(obj) do l.Visible = false end else obj.Visible = false end end end
+                        pcall(function() d.Arrow.Visible = true; d.Arrow.PointA = p1; d.Arrow.PointB = p2; d.Arrow.PointC = p3; d.Arrow.Color = Config.Colors.CompassColor end)
+                    elseif d.Arrow then pcall(function() d.Arrow.Visible = false end) end
+                    hideElements(d, "Arrow")
                 end
             else
-                for _, obj in pairs(d) do if type(obj) == "table" then for _, l in pairs(obj) do l.Visible = false end else obj.Visible = false end end
+                hideElements(d)
                 if char:FindFirstChild("ScriptoraHighlight") then char.ScriptoraHighlight:Destroy() end
             end
         end
@@ -441,8 +577,10 @@ Scriptora:CreateKeySystem({
         -- // MAIN
         CONNECTIONS.Heartbeat = RunService.Heartbeat:Connect(function()
             if FOVCircle then
-                FOVCircle.Visible = Config.Combat.ShowFOV and Config.Combat.Aimbot
-                FOVCircle.Radius = Config.Combat.FOV; FOVCircle.Position = UserInputService:GetMouseLocation(); FOVCircle.Color = Config.Colors.FOVColor
+                pcall(function()
+                    FOVCircle.Visible = Config.Combat.ShowFOV and Config.Combat.Aimbot
+                    FOVCircle.Radius = Config.Combat.FOV; FOVCircle.Position = UserInputService:GetMouseLocation(); FOVCircle.Color = Config.Colors.FOVColor
+                end)
             end
 
             local char = LocalPlayer.Character
@@ -469,10 +607,15 @@ Scriptora:CreateKeySystem({
                     if Config.Combat.Mode == "Mouse (3rd Person)" and mousemoverel then
                         local pos = Camera:WorldToViewportPoint(t.Position); local m = UserInputService:GetMouseLocation()
                         local moveX, moveY = (pos.X - m.X), (pos.Y - m.Y)
-                        if Config.Combat.Smoothing > 0 then moveX = moveX/Config.Combat.Smoothing; moveY = moveY/Config.Combat.Smoothing end
-                        mousemoverel(moveX, moveY)
+                        local smooth = Config.Combat.Smoothing + 1
+                        mousemoverel(moveX / smooth, moveY / smooth)
                     elseif Config.Combat.Mode == "Camera (1st Person)" then
-                        Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Position)
+                        local targetCF = CFrame.new(Camera.CFrame.Position, t.Position)
+                        if Config.Combat.Smoothing > 0 then
+                            Camera.CFrame = Camera.CFrame:Lerp(targetCF, 1 / (Config.Combat.Smoothing + 1))
+                        else
+                            Camera.CFrame = targetCF
+                        end
                     end
                 end
             else
@@ -501,7 +644,6 @@ Scriptora:CreateKeySystem({
                             end
                         end
                     else
-                        -- Revert sizes if teammate or feature off
                         for _, v in ipairs(p.Character:GetChildren()) do
                             if v:IsA("BasePart") and ORIGINAL_SIZES[v] then
                                 v.Size = ORIGINAL_SIZES[v]
@@ -514,8 +656,8 @@ Scriptora:CreateKeySystem({
             end
             
             if Config.Visuals.NPCSupport then 
-                for _, v in ipairs(workspace:GetDescendants()) do 
-                    if v:IsA("Model") and v:FindFirstChild("Humanoid") and not Players:GetPlayerFromCharacter(v) then 
+                for _, v in ipairs(NPC_LIST) do 
+                    if v.Parent then
                         renderESP(v)
                         if Config.Misc.Hitbox then
                             for _, partName in ipairs(Config.Misc.HitboxParts) do
@@ -545,15 +687,22 @@ Scriptora:CreateKeySystem({
                 if say then say.SayMessageRequest:FireServer(Config.Misc.SpamText, "All") end
             end
             
-            -- Fast Registry Cleanup
-            for ent, _ in pairs(ESP_REGISTRY) do if not ent or not ent.Parent then removeEntity(ent) end end
+            for ent, _ in pairs(ESP_REGISTRY) do 
+                if not ent or not ent.Parent then 
+                    removeEntity(ent) 
+                elseif not Players:GetPlayerFromCharacter(ent) and not Config.Visuals.NPCSupport then
+                    removeEntity(ent)
+                end 
+            end
         end)
 
         CONNECTIONS.Jump = UserInputService.JumpRequest:Connect(function() if Config.Misc.InfiniteJump and LocalPlayer.Character then LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end end)
         
-        if not CAPABILITIES.Triangle then
-            Scriptora:Notify({ Title = "Executor Warning", Content = "Some visual features (Compass) are disabled due to executor limitations.", Type = "warning", Duration = 8 })
+        local MissingCapStr = ""
+        for k, v in pairs(CAPABILITIES) do if not v then MissingCapStr = MissingCapStr .. k .. ", " end end
+        if MissingCapStr ~= "" then
+            Scriptora:Notify({ Title = "Compatibility Mode", Content = "Disabled features lacking support: " .. MissingCapStr:sub(1, -3), Type = "warning", Duration = 8 })
         end
-        Scriptora:Notify({ Title = "Scriptora Universal v9.0", Content = "Infinite Universal Hub Loaded.", Type = "success" })
+        Scriptora:Notify({ Title = "Scriptora Universal", Content = "The best utility", Type = "success" })
     end
 })
